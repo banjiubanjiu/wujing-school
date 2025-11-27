@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, Col, Form, Row, Select, Statistic, Table, Tag } from "antd";
 import { AppLayout } from "../../components/Layout";
@@ -73,17 +74,49 @@ export function StudentDashboard() {
 
 export function StudentSchedulePage() {
   const { data: schedule = [] } = useQuery({ queryKey: ["student-schedule"], queryFn: () => fetchMySchedule() });
+  const { data: terms = [] } = useQuery({ queryKey: ["terms"], queryFn: () => fetchTerms() });
+  const [termForm] = Form.useForm();
+  const watchedTermId = Form.useWatch("term_id", termForm);
+  const filteredSchedule = useMemo(() => {
+    const termMap = new Map((terms as Term[]).map((t) => [t.id, t]));
+    const currentTermId = termMap.get((terms as Term[]).find((t) => t.is_current)?.id || 0)?.id;
+    return {
+      currentTermId,
+      byTerm: (termId?: number) =>
+        (schedule as ScheduleEntry[]).filter((s) => {
+          const scheduleTermId = s.course?.term_id;
+          return !termId || !scheduleTermId || scheduleTermId === termId;
+        }),
+    };
+  }, [schedule, terms]);
+  const selectedTermId = watchedTermId ?? filteredSchedule.currentTermId;
+  const dataSource = filteredSchedule.byTerm(selectedTermId);
   return (
     <AppLayout navItems={studentNav} title="我的课表">
       <Row gutter={16}>
         <Col span={16}>
-          <Timetable schedule={schedule as ScheduleEntry[]} title="周课程表" />
+          <Timetable schedule={dataSource as ScheduleEntry[]} title="周课程表" />
         </Col>
         <Col span={8}>
-          <Card title="列表视图">
+          <Card
+            title="列表视图"
+            extra={
+              <Form layout="inline" form={termForm} initialValues={{ term_id: filteredSchedule.currentTermId }}>
+                <Form.Item name="term_id" style={{ marginBottom: 0 }}>
+                  <Select
+                    allowClear
+                    placeholder="按学期筛选"
+                    style={{ minWidth: 160 }}
+                    options={(terms as Term[]).map((t) => ({ value: t.id, label: t.name }))}
+                    onChange={() => termForm.submit()}
+                  />
+                </Form.Item>
+              </Form>
+            }
+          >
             <Table<ScheduleEntry>
               rowKey="id"
-              dataSource={schedule}
+              dataSource={dataSource}
               columns={[
                 { title: "星期", dataIndex: "weekday", render: (v: number) => weekdayText[v] || v },
                 { title: "课程", dataIndex: ["course", "name"], render: (v: string, r: ScheduleEntry) => v || r.course_id },

@@ -713,6 +713,7 @@ export function SchedulePanel() {
   const { data: classes = [] } = useQuery({ queryKey: ["classes"], queryFn: () => fetchClasses() });
   const { data: courses = [] } = useQuery({ queryKey: ["courses"], queryFn: () => fetchCourses() });
   const { data: teachers = [] } = useQuery({ queryKey: ["teachers"], queryFn: () => fetchTeachers() });
+  const { data: terms = [] } = useQuery({ queryKey: ["terms"], queryFn: () => fetchTerms() });
   const selectedScheduleCourseId = Form.useWatch("course_id", createForm);
   const selectedScheduleCourse = useMemo(
     () => (courses as Course[]).find((c) => c.id === selectedScheduleCourseId),
@@ -743,6 +744,8 @@ export function SchedulePanel() {
     () => (teachers as Teacher[]).map((t) => ({ value: t.id, label: `${t.user.full_name} (${t.id})` })),
     [teachers]
   );
+  const scheduleTermOptions = useMemo(() => (terms as Term[]).map((t) => ({ value: t.id, label: t.name })), [terms]);
+  const filterTermId = Form.useWatch("term_id", filterForm);
   const { data: schedule = [] } = useQuery({
     queryKey: ["schedule", filterForm.getFieldValue("class_id"), filterForm.getFieldValue("teacher_id")],
     queryFn: () =>
@@ -751,6 +754,14 @@ export function SchedulePanel() {
         teacher_id: filterForm.getFieldValue("teacher_id"),
       }),
   });
+  const filteredSchedule = useMemo(
+    () =>
+      (schedule as ScheduleEntry[]).filter((s) => {
+        const termId = s.course?.term_id;
+        return !filterTermId || !termId || termId === filterTermId;
+      }),
+    [schedule, filterTermId]
+  );
 
   const createMut = useMutation({
     mutationFn: createScheduleEntry,
@@ -802,6 +813,16 @@ export function SchedulePanel() {
                   options={scheduleTeacherOptions}
                 />
               </Form.Item>
+              <Form.Item name="term_id">
+                <Select
+                  showSearch
+                  optionFilterProp="label"
+                  allowClear
+                  placeholder="学期"
+                  style={{ minWidth: 160 }}
+                  options={scheduleTermOptions}
+                />
+              </Form.Item>
               <Form.Item>
                 <Button onClick={() => queryClient.invalidateQueries({ queryKey: ["schedule"] })}>筛选</Button>
               </Form.Item>
@@ -809,9 +830,9 @@ export function SchedulePanel() {
           }
         >
           <div style={{ marginBottom: 12 }}>
-            <Timetable schedule={schedule as ScheduleEntry[]} title="周视图" />
+            <Timetable schedule={filteredSchedule as ScheduleEntry[]} title="周视图" />
           </div>
-          <Table<ScheduleEntry> rowKey="id" dataSource={schedule} columns={columns} pagination={{ pageSize: PAGE_SIZE }} />
+          <Table<ScheduleEntry> rowKey="id" dataSource={filteredSchedule} columns={columns} pagination={{ pageSize: PAGE_SIZE }} />
         </Card>
       </Col>
       <Col span={10}>

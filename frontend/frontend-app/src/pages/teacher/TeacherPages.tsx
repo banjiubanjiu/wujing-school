@@ -4,8 +4,8 @@ import { Button, Card, Col, Form, InputNumber, Row, Select, Statistic, Table, Ta
 import { AppLayout } from "../../components/Layout";
 import { Timetable } from "../../components/Timetable";
 import { teacherNav } from "../../constants/nav";
-import { fetchCourses, fetchGrades, fetchHome, fetchMySchedule, fetchStudents, submitGrade, upsertGrade } from "../../api/entities";
-import type { Course, Grade, ScheduleEntry, Student } from "../../api/types";
+import { fetchCourses, fetchGrades, fetchHome, fetchMySchedule, fetchStudents, fetchTerms, submitGrade, upsertGrade } from "../../api/entities";
+import type { Course, Grade, ScheduleEntry, Student, Term } from "../../api/types";
 
 const weekdayText = ["-", "周一", "周二", "周三", "周四", "周五", "周六", "周日"];
 const statusTag = (status?: string) => {
@@ -71,17 +71,44 @@ export function TeacherDashboard() {
 
 export function TeacherSchedulePage() {
   const { data: schedule = [] } = useQuery({ queryKey: ["teacher-schedule"], queryFn: () => fetchMySchedule() });
+  const { data: terms = [] } = useQuery({ queryKey: ["terms"], queryFn: () => fetchTerms() });
+  const [termForm] = Form.useForm();
+  const watchedTermId = Form.useWatch("term_id", termForm);
+  const selectedTermId = watchedTermId || (terms as Term[]).find((t) => t.is_current)?.id;
+  const filteredSchedule = useMemo(
+    () =>
+      (schedule as ScheduleEntry[]).filter((s) => {
+        const termId = s.course?.term_id;
+        return !selectedTermId || !termId || termId === selectedTermId;
+      }),
+    [schedule, selectedTermId]
+  );
   return (
     <AppLayout navItems={teacherNav} title="授课安排">
       <Row gutter={16}>
         <Col span={16}>
-          <Timetable schedule={schedule as ScheduleEntry[]} title="周课程表" />
+          <Timetable schedule={filteredSchedule as ScheduleEntry[]} title="周课程表" />
         </Col>
         <Col span={8}>
-          <Card title="列表视图">
+          <Card
+            title="列表视图"
+            extra={
+              <Form layout="inline" form={termForm} initialValues={{ term_id: selectedTermId }}>
+                <Form.Item name="term_id" style={{ marginBottom: 0 }}>
+                  <Select
+                    allowClear
+                    placeholder="按学期筛选"
+                    style={{ minWidth: 160 }}
+                    options={(terms as Term[]).map((t) => ({ value: t.id, label: t.name }))}
+                    onChange={() => termForm.submit()}
+                  />
+                </Form.Item>
+              </Form>
+            }
+          >
             <Table<ScheduleEntry>
               rowKey="id"
-              dataSource={schedule}
+              dataSource={filteredSchedule}
               columns={[
                 { title: "星期", dataIndex: "weekday", render: (v: number) => weekdayText[v] || v },
                 { title: "课程", dataIndex: ["course", "name"], render: (v: string, r: ScheduleEntry) => v || r.course_id },
