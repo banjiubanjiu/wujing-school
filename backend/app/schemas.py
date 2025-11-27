@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, time
 from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -390,8 +390,8 @@ class ExamOut(ORMModel):
     class_id: Optional[int] = None
     term_id: Optional[int] = None
     exam_type: Optional[str] = None
-    exam_date: Optional[str] = None
-    start_time: Optional[str] = None
+    exam_date: Optional[date | str] = None
+    start_time: Optional[str | time] = None
     duration_minutes: Optional[int] = None
     location: Optional[str] = None
     invigilators: Optional[str] = None
