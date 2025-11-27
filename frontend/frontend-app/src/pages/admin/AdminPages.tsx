@@ -1,14 +1,12 @@
 import { adminNav } from "../../constants/nav";
 import { AppLayout } from "../../components/Layout";
-import {
-  DashboardCard,
-  StudentClassCourse,
-  MajorTerm,
-  SchedulePanel,
-  TrainingPlanPanel,
-  GradePanel,
-  ExamPanel,
-} from "./AdminPage";
+import { DashboardCard } from "./panels/DashboardCard";
+import { StudentClassCourse } from "./panels/StudentClassCourse";
+import { MajorTerm } from "./panels/MajorTerm";
+import { SchedulePanel } from "./panels/SchedulePanel";
+import { TrainingPlanPanel } from "./panels/TrainingPlanPanel";
+import { GradePanel } from "./panels/GradePanel";
+import { ExamPanel } from "./panels/ExamPanel";
 
 export function AdminDashboard() {
   return (

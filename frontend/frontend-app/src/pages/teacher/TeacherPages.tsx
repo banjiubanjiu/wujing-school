@@ -1,29 +1,27 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Card, Col, Form, InputNumber, Row, Select, Statistic, Table, Tag, message } from "antd";
+import { Button, Card, Col, Form, InputNumber, Row, Select, Statistic, Table, message } from "antd";
 import { AppLayout } from "../../components/Layout";
 import { Timetable } from "../../components/Timetable";
+import { StatusTag } from "../../components/StatusTag";
+import { weekdayText } from "../../constants/dates";
 import { teacherNav } from "../../constants/nav";
 import { fetchCourses, fetchGrades, fetchHome, fetchMySchedule, fetchStudents, fetchTerms, submitGrade, upsertGrade } from "../../api/entities";
 import type { Course, Grade, ScheduleEntry, Student, Term } from "../../api/types";
 
-const weekdayText = ["-", "周一", "周二", "周三", "周四", "周五", "周六", "周日"];
-const statusTag = (status?: string) => {
-  const color = status === "published" ? "green" : status === "submitted" ? "blue" : status === "rejected" ? "red" : "default";
-  return <Tag color={color}>{status || "-"}</Tag>;
-};
+const statusRenderer = (status?: string) => <StatusTag status={status} />;
 
 export function TeacherDashboard() {
-  const { data: home } = useQuery({ queryKey: ["home"], queryFn: () => fetchHome() });
-  const { data: schedule = [] } = useQuery({ queryKey: ["teacher-schedule"], queryFn: () => fetchMySchedule() });
-  const { data: courses = [] } = useQuery({ queryKey: ["teacher-courses"], queryFn: () => fetchCourses({ mine: true }) });
+  const { data: home, isLoading: homeLoading } = useQuery({ queryKey: ["home"], queryFn: () => fetchHome() });
+  const { data: schedule = [], isLoading: scheduleLoading } = useQuery({ queryKey: ["teacher-schedule"], queryFn: () => fetchMySchedule() });
+  const { data: courses = [], isLoading: courseLoading } = useQuery({ queryKey: ["teacher-courses"], queryFn: () => fetchCourses({ mine: true }) });
 
   const scheduleColumns = [
     { title: "星期", dataIndex: "weekday", render: (v: number) => weekdayText[v] || v },
     { title: "课程", dataIndex: ["course", "name"], render: (v: string, r: ScheduleEntry) => v || r.course_id },
     { title: "班级", dataIndex: ["class_info", "name"], render: (v: string, r: ScheduleEntry) => v || r.class_id || "-" },
     { title: "节次", render: (_: unknown, r: ScheduleEntry) => `${r.start_slot}-${r.end_slot}` },
-    { title: "地点", dataIndex: "location", render: (v: string) => v || "-" },
+    { title: "地点", dataIndex: "location", render: (v: string, r: ScheduleEntry) => v || r.room?.name || "-" },
   ];
 
   const courseColumns = [
@@ -38,7 +36,7 @@ export function TeacherDashboard() {
     <AppLayout navItems={teacherNav} title="教师工作台" subtitle="快速查看课表与课程">
       <Row gutter={[16, 16]}>
         <Col span={24}>
-          <Card>
+          <Card loading={homeLoading}>
             <Row gutter={16}>
               {[
                 { key: "courses", label: "课程总数" },
@@ -56,12 +54,12 @@ export function TeacherDashboard() {
 
         <Col span={14}>
           <Card title="授课安排">
-            <Table<ScheduleEntry> rowKey="id" dataSource={schedule} columns={scheduleColumns} pagination={false} />
+            <Table<ScheduleEntry> rowKey="id" dataSource={schedule} columns={scheduleColumns} pagination={false} loading={scheduleLoading} />
           </Card>
         </Col>
         <Col span={10}>
           <Card title="我的课程">
-            <Table<Course> rowKey="id" dataSource={courses} columns={courseColumns} pagination={{ pageSize: 8 }} />
+            <Table<Course> rowKey="id" dataSource={courses} columns={courseColumns} pagination={{ pageSize: 8 }} loading={courseLoading} />
           </Card>
         </Col>
       </Row>
@@ -70,7 +68,7 @@ export function TeacherDashboard() {
 }
 
 export function TeacherSchedulePage() {
-  const { data: schedule = [] } = useQuery({ queryKey: ["teacher-schedule"], queryFn: () => fetchMySchedule() });
+  const { data: schedule = [], isLoading } = useQuery({ queryKey: ["teacher-schedule"], queryFn: () => fetchMySchedule() });
   const { data: terms = [] } = useQuery({ queryKey: ["terms"], queryFn: () => fetchTerms() });
   const [termForm] = Form.useForm();
   const watchedTermId = Form.useWatch("term_id", termForm);
@@ -118,6 +116,7 @@ export function TeacherSchedulePage() {
               ]}
               pagination={{ pageSize: 10 }}
               size="small"
+              loading={isLoading}
             />
           </Card>
         </Col>
@@ -127,7 +126,7 @@ export function TeacherSchedulePage() {
 }
 
 export function TeacherCoursesPage() {
-  const { data: courses = [] } = useQuery({ queryKey: ["teacher-courses"], queryFn: () => fetchCourses({ mine: true }) });
+  const { data: courses = [], isLoading } = useQuery({ queryKey: ["teacher-courses"], queryFn: () => fetchCourses({ mine: true }) });
   const columns = [
     { title: "课程", dataIndex: "name" },
     { title: "代码", dataIndex: "code" },
@@ -140,7 +139,7 @@ export function TeacherCoursesPage() {
   return (
     <AppLayout navItems={teacherNav} title="我的课程">
       <Card>
-        <Table<Course> rowKey="id" dataSource={courses} columns={columns} pagination={{ pageSize: 10 }} />
+        <Table<Course> rowKey="id" dataSource={courses} columns={columns} pagination={{ pageSize: 10 }} loading={isLoading} />
       </Card>
     </AppLayout>
   );
@@ -152,7 +151,7 @@ export function TeacherGradesPage() {
   const [selectedCourseId, setSelectedCourseId] = useState<number | undefined>(undefined);
 
   const { data: courses = [] } = useQuery({ queryKey: ["teacher-courses"], queryFn: () => fetchCourses({ mine: true }) });
-  const { data: grades = [] } = useQuery({ queryKey: ["teacher-grades"], queryFn: () => fetchGrades({ mine: true }) });
+  const { data: grades = [], isLoading: gradesLoading } = useQuery({ queryKey: ["teacher-grades"], queryFn: () => fetchGrades({ mine: true }) });
   const selectedCourse = useMemo(() => (courses as Course[]).find((c) => c.id === selectedCourseId), [courses, selectedCourseId]);
   const classId = selectedCourse?.class_id;
 
@@ -216,7 +215,7 @@ export function TeacherGradesPage() {
     { title: "平时", dataIndex: "usual_score" },
     { title: "期末", dataIndex: "final_score" },
     { title: "总评", dataIndex: "total_score" },
-    { title: "状态", dataIndex: "status", render: statusTag },
+    { title: "状态", dataIndex: "status", render: statusRenderer },
     {
       title: "操作",
       render: (_: unknown, record: Grade) => (
@@ -233,33 +232,33 @@ export function TeacherGradesPage() {
         <Col span={10}>
           <Card title="录入成绩">
             <Form layout="vertical" form={gradeForm} onFinish={upsertGradeMut.mutate}>
-            <Form.Item name="course_id" label="课程" rules={[{ required: true }]}>
-              <Select
-                showSearch
-                optionFilterProp="label"
-                allowClear
-                placeholder="选择课程"
-                options={courseOptions}
-                onChange={(val) => {
-                  setSelectedCourseId(val || undefined);
-                  if (!val) {
-                    gradeForm.setFieldsValue({ term_id: undefined, student_id: undefined });
-                  }
-                }}
-              />
-            </Form.Item>
-            <Form.Item name="term_id" label="学期ID" rules={[{ required: true }]}>
-              <InputNumber style={{ width: "100%" }} disabled placeholder="随课程自动填充" />
-            </Form.Item>
-            <Form.Item name="student_id" label="学生" rules={[{ required: true }]}>
-              <Select
-                showSearch
-                optionFilterProp="label"
-                placeholder={classId ? "选择学生" : "先选择课程/班级"}
-                options={studentOptions}
-                disabled={!classId}
-              />
-            </Form.Item>
+              <Form.Item name="course_id" label="课程" rules={[{ required: true }]}>
+                <Select
+                  showSearch
+                  optionFilterProp="label"
+                  allowClear
+                  placeholder="选择课程"
+                  options={courseOptions}
+                  onChange={(val) => {
+                    setSelectedCourseId(val || undefined);
+                    if (!val) {
+                      gradeForm.setFieldsValue({ term_id: undefined, student_id: undefined });
+                    }
+                  }}
+                />
+              </Form.Item>
+              <Form.Item name="term_id" label="学期ID" rules={[{ required: true }]}>
+                <InputNumber style={{ width: "100%" }} disabled placeholder="随课程自动填充" />
+              </Form.Item>
+              <Form.Item name="student_id" label="学生" rules={[{ required: true }]}>
+                <Select
+                  showSearch
+                  optionFilterProp="label"
+                  placeholder={classId ? "选择学生" : "先选择课程/班级"}
+                  options={studentOptions}
+                  disabled={!classId}
+                />
+              </Form.Item>
               <Form.Item name="usual_score" label="平时成绩" rules={[{ required: true }]}>
                 <InputNumber style={{ width: "100%" }} min={0} max={100} />
               </Form.Item>
@@ -284,7 +283,7 @@ export function TeacherGradesPage() {
         </Col>
         <Col span={14}>
           <Card title="成绩列表">
-            <Table<Grade> rowKey="id" dataSource={grades} columns={columns} pagination={{ pageSize: 10 }} />
+            <Table<Grade> rowKey="id" dataSource={grades} columns={columns} pagination={{ pageSize: 10 }} loading={gradesLoading || submitGradeMut.isPending} />
           </Card>
         </Col>
       </Row>

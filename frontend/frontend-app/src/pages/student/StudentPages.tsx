@@ -1,21 +1,16 @@
 import { useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Card, Col, Form, Row, Select, Statistic, Table, Tag } from "antd";
+import { Card, Col, Form, Row, Select, Statistic, Table } from "antd";
 import { AppLayout } from "../../components/Layout";
 import { Timetable } from "../../components/Timetable";
+import { StatusTag } from "../../components/StatusTag";
+import { weekdayText } from "../../constants/dates";
 import { studentNav } from "../../constants/nav";
 import { fetchExams, fetchHome, fetchMyGrades, fetchMySchedule, fetchTerms } from "../../api/entities";
 import type { Exam, Grade, ScheduleEntry, Term } from "../../api/types";
 
-const weekdayText = ["-", "周一", "周二", "周三", "周四", "周五", "周六", "周日"];
-
-const statusTag = (status?: string) => {
-  const color = status === "published" ? "green" : status === "submitted" ? "blue" : status === "rejected" ? "red" : "default";
-  return <Tag color={color}>{status || "-"}</Tag>;
-};
-
 export function StudentDashboard() {
-  const { data: home } = useQuery({ queryKey: ["home"], queryFn: () => fetchHome() });
+  const { data: home, isLoading } = useQuery({ queryKey: ["home"], queryFn: () => fetchHome() });
   const schedulePreview = home?.schedule_preview || [];
   const latestGrades = home?.latest_grades || [];
 
@@ -31,7 +26,7 @@ export function StudentDashboard() {
     <AppLayout navItems={studentNav} title="学生首页" subtitle="课表、考试、成绩概览">
       <Row gutter={[16, 16]}>
         <Col span={24}>
-          <Card>
+          <Card loading={isLoading}>
             <Row gutter={16}>
               {[
                 { key: "courses", label: "课程总数" },
@@ -49,7 +44,7 @@ export function StudentDashboard() {
 
         <Col span={14}>
           <Card title="本周课表预览">
-            <Table<ScheduleEntry> rowKey="id" dataSource={schedulePreview} columns={scheduleColumns} pagination={false} />
+            <Table<ScheduleEntry> rowKey="id" dataSource={schedulePreview} columns={scheduleColumns} pagination={false} loading={isLoading} />
           </Card>
         </Col>
         <Col span={10}>
@@ -58,11 +53,12 @@ export function StudentDashboard() {
               rowKey="id"
               dataSource={latestGrades}
               pagination={false}
+              loading={isLoading}
               columns={[
                 { title: "课程", dataIndex: ["course", "name"], render: (v: string, r: Grade) => v || r.course_id },
                 { title: "学期", dataIndex: ["term", "name"], render: (v: string, r: Grade) => v || r.term_id },
                 { title: "成绩", dataIndex: "total_score" },
-                { title: "状态", dataIndex: "status", render: statusTag },
+                { title: "状态", dataIndex: "status", render: (v: string) => <StatusTag status={v} /> },
               ]}
             />
           </Card>
@@ -73,7 +69,7 @@ export function StudentDashboard() {
 }
 
 export function StudentSchedulePage() {
-  const { data: schedule = [] } = useQuery({ queryKey: ["student-schedule"], queryFn: () => fetchMySchedule() });
+  const { data: schedule = [], isLoading } = useQuery({ queryKey: ["student-schedule"], queryFn: () => fetchMySchedule() });
   const { data: terms = [] } = useQuery({ queryKey: ["terms"], queryFn: () => fetchTerms() });
   const [termForm] = Form.useForm();
   const watchedTermId = Form.useWatch("term_id", termForm);
@@ -117,6 +113,7 @@ export function StudentSchedulePage() {
             <Table<ScheduleEntry>
               rowKey="id"
               dataSource={dataSource}
+              loading={isLoading}
               columns={[
                 { title: "星期", dataIndex: "weekday", render: (v: number) => weekdayText[v] || v },
                 { title: "课程", dataIndex: ["course", "name"], render: (v: string, r: ScheduleEntry) => v || r.course_id },
@@ -136,10 +133,11 @@ export function StudentSchedulePage() {
 export function StudentGradesPage() {
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
+  const termId = Form.useWatch("term_id", form);
   const { data: terms = [] } = useQuery({ queryKey: ["terms"], queryFn: () => fetchTerms() });
-  const { data: grades = [] } = useQuery({
-    queryKey: ["student-grades", form.getFieldValue("term_id")],
-    queryFn: () => fetchMyGrades({ term_id: form.getFieldValue("term_id") }),
+  const { data: grades = [], isLoading } = useQuery({
+    queryKey: ["student-grades", termId],
+    queryFn: () => fetchMyGrades({ term_id: termId }),
   });
 
   const columns = [
@@ -148,7 +146,7 @@ export function StudentGradesPage() {
     { title: "平时", dataIndex: "usual_score" },
     { title: "期末", dataIndex: "final_score" },
     { title: "总评", dataIndex: "total_score" },
-    { title: "状态", dataIndex: "status", render: statusTag },
+    { title: "状态", dataIndex: "status", render: (v: string) => <StatusTag status={v} /> },
   ];
 
   return (
@@ -163,20 +161,20 @@ export function StudentGradesPage() {
                 placeholder="按学期筛选"
                 style={{ minWidth: 160 }}
                 options={(terms as Term[]).map((t) => ({ value: t.id, label: t.name }))}
-                onChange={() => queryClient.invalidateQueries({ queryKey: ["student-grades"] })}
+                onChange={() => queryClient.invalidateQueries({ queryKey: ["student-grades", termId] })}
               />
             </Form.Item>
           </Form>
         }
       >
-        <Table<Grade> rowKey="id" dataSource={grades} columns={columns} pagination={{ pageSize: 10 }} />
+        <Table<Grade> rowKey="id" dataSource={grades} columns={columns} pagination={{ pageSize: 10 }} loading={isLoading} />
       </Card>
     </AppLayout>
   );
 }
 
 export function StudentExamsPage() {
-  const { data: exams = [] } = useQuery({ queryKey: ["student-exams"], queryFn: () => fetchExams() });
+  const { data: exams = [], isLoading } = useQuery({ queryKey: ["student-exams"], queryFn: () => fetchExams() });
   const columns = [
     { title: "课程", dataIndex: ["course", "name"], render: (v: string, r: Exam) => v || r.course_id },
     { title: "日期", dataIndex: "exam_date" },
@@ -188,7 +186,7 @@ export function StudentExamsPage() {
   return (
     <AppLayout navItems={studentNav} title="考试安排">
       <Card>
-        <Table<Exam> rowKey="id" dataSource={exams} columns={columns} pagination={{ pageSize: 10 }} />
+        <Table<Exam> rowKey="id" dataSource={exams} columns={columns} pagination={{ pageSize: 10 }} loading={isLoading} />
       </Card>
     </AppLayout>
   );
