@@ -1,19 +1,5 @@
 import { api } from "./client";
-import type {
-  Term,
-  Student,
-  ClassItem,
-  Course,
-  Major,
-  Exam,
-  Grade,
-  MenuResponse,
-  HomeResponse,
-  TrainingPlan,
-  ScheduleEntry,
-  OrgUnit,
-  Teacher,
-} from "./types";
+import type { Term, Student, ClassItem, Course, Major, Exam, Grade, MenuResponse, HomeResponse, TrainingPlan, ScheduleEntry, OrgUnit, Teacher, Room } from "./types";
 
 export async function fetchHome(): Promise<HomeResponse> {
   const res = await api.get("/api/home");
@@ -205,6 +191,7 @@ export async function createScheduleEntry(payload: {
   course_id: number;
   class_id?: number;
   teacher_id?: number;
+  room_id?: number;
   weekday: number;
   start_slot: number;
   end_slot: number;
@@ -220,6 +207,7 @@ export async function updateScheduleEntry(
     course_id: number;
     class_id?: number;
     teacher_id?: number;
+    room_id?: number;
     weekday: number;
     start_slot: number;
     end_slot: number;
@@ -232,6 +220,11 @@ export async function updateScheduleEntry(
 
 export async function deleteScheduleEntry(id: number) {
   const res = await api.delete(`/api/schedule/${id}`);
+  return res.data;
+}
+
+export async function fetchRooms(params?: { q?: string; room_type?: string; active?: boolean }) {
+  const res = await api.get<Room[]>("/api/rooms", { params });
   return res.data;
 }
 

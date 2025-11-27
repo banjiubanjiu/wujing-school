@@ -15,6 +15,23 @@ from sqlalchemy.orm import relationship
 from .db import Base
 
 
+class Room(Base):
+    __tablename__ = "rooms"
+
+    id = Column(Integer, primary_key=True, index=True)
+    code = Column(String(50), nullable=False, unique=True)
+    name = Column(String(100), nullable=False)
+    building = Column(String(100))
+    capacity = Column(Integer)
+    room_type = Column(String(50))
+    features = Column(String(255))
+    active = Column(Boolean, nullable=False, server_default=text("1"))
+    created_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
+
+    schedules = relationship("ScheduleEntry", back_populates="room")
+    exams = relationship("Exam", back_populates="room")
+
+
 class Role(Base):
     __tablename__ = "roles"
 
@@ -256,6 +273,7 @@ class ScheduleEntry(Base):
     course_id = Column(Integer, ForeignKey("courses.id"), nullable=False)
     class_id = Column(Integer, ForeignKey("classes.id"))
     teacher_id = Column(Integer, ForeignKey("teachers.id"))
+    room_id = Column(Integer, ForeignKey("rooms.id"))
     weekday = Column(Integer, nullable=False)  # 1=Mon
     start_slot = Column(Integer, nullable=False)
     end_slot = Column(Integer, nullable=False)
@@ -265,6 +283,7 @@ class ScheduleEntry(Base):
     course = relationship("Course", back_populates="schedules")
     class_info = relationship("Class", backref="schedules")
     teacher = relationship("Teacher", backref="schedules")
+    room = relationship("Room", back_populates="schedules")
 
 
 class Grade(Base):
@@ -306,6 +325,7 @@ class Exam(Base):
     course_id = Column(Integer, ForeignKey("courses.id"), nullable=False)
     class_id = Column(Integer, ForeignKey("classes.id"))
     term_id = Column(Integer, ForeignKey("terms.id"))
+    room_id = Column(Integer, ForeignKey("rooms.id"))
     exam_type = Column(String(50), default="期末")
     exam_date = Column(Date)
     start_time = Column(Time)
@@ -317,3 +337,4 @@ class Exam(Base):
     course = relationship("Course", backref="exams")
     term = relationship("Term", backref="exams")
     class_info = relationship("Class", backref="exams")
+    room = relationship("Room", back_populates="exams")

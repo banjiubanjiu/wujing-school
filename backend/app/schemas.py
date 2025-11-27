@@ -249,18 +249,21 @@ class ScheduleEntryOut(ORMModel):
     course_id: int
     class_id: Optional[int] = None
     teacher_id: Optional[int] = None
+    room_id: Optional[int] = None
     weekday: int
     start_slot: int
     end_slot: int
     location: Optional[str] = None
     course: Optional[CourseOut] = None
     class_info: Optional[ClassOut] = None
+    room: Optional["RoomOut"] = None
 
 
 class ScheduleCreate(BaseModel):
     course_id: int
     class_id: Optional[int] = None
     teacher_id: Optional[int] = None
+    room_id: Optional[int] = None
     weekday: int
     start_slot: int
     end_slot: int
@@ -271,10 +274,41 @@ class ScheduleUpdate(BaseModel):
     course_id: Optional[int] = None
     class_id: Optional[int] = None
     teacher_id: Optional[int] = None
+    room_id: Optional[int] = None
     weekday: Optional[int] = None
     start_slot: Optional[int] = None
     end_slot: Optional[int] = None
     location: Optional[str] = None
+
+
+class RoomOut(ORMModel):
+    id: int
+    code: str
+    name: str
+    building: Optional[str] = None
+    capacity: Optional[int] = None
+    room_type: Optional[str] = None
+    features: Optional[str] = None
+    active: bool
+
+
+class RoomCreate(BaseModel):
+    code: str
+    name: str
+    building: Optional[str] = None
+    capacity: Optional[int] = None
+    room_type: Optional[str] = None
+    features: Optional[str] = None
+    active: bool = True
+
+
+class RoomUpdate(BaseModel):
+    name: Optional[str] = None
+    building: Optional[str] = None
+    capacity: Optional[int] = None
+    room_type: Optional[str] = None
+    features: Optional[str] = None
+    active: Optional[bool] = None
 
 
 class GradeOut(ORMModel):

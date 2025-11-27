@@ -114,7 +114,7 @@ export function TeacherSchedulePage() {
                 { title: "课程", dataIndex: ["course", "name"], render: (v: string, r: ScheduleEntry) => v || r.course_id },
                 { title: "班级", dataIndex: ["class_info", "name"], render: (v: string, r: ScheduleEntry) => v || r.class_id || "-" },
                 { title: "节次", render: (_: unknown, r: ScheduleEntry) => `${r.start_slot}-${r.end_slot}` },
-                { title: "地点", dataIndex: "location", render: (v: string) => v || "-" },
+                { title: "地点", render: (_: unknown, r: ScheduleEntry) => r.room?.name || r.location || "-" },
               ]}
               pagination={{ pageSize: 10 }}
               size="small"

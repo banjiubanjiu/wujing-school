@@ -77,6 +77,17 @@ export interface Course {
   weekly_hours?: number;
 }
 
+export interface Room {
+  id: number;
+  code: string;
+  name: string;
+  building?: string;
+  capacity?: number;
+  room_type?: string;
+  features?: string;
+  active: boolean;
+}
+
 export interface Student {
   id: number;
   student_no: string;
@@ -105,6 +116,7 @@ export interface Exam {
   course_id: number;
   class_id?: number;
   term_id?: number;
+  room_id?: number;
   exam_type?: string;
   exam_date?: string;
   start_time?: string;
@@ -114,6 +126,7 @@ export interface Exam {
   course?: Course;
   class_info?: ClassItem;
   term?: Term;
+  room?: Room;
 }
 
 export interface Grade {
@@ -160,10 +173,12 @@ export interface ScheduleEntry {
   course_id: number;
   class_id?: number;
   teacher_id?: number;
+  room_id?: number;
   weekday: number;
   start_slot: number;
   end_slot: number;
   location?: string;
   course?: Course;
   class_info?: ClassItem;
+  room?: Room;
 }

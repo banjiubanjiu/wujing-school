@@ -92,7 +92,7 @@ export function Timetable({ schedule, title = "课程表", maxSlot, onEntryClick
           const rowEnd = (item.end_slot || item.start_slot || 1) + 2;
           const courseName = item.course?.name || `课程 ${item.course_id}`;
           const className = item.class_info?.name || (item.class_id ? `班级 ${item.class_id}` : "");
-          const location = item.location || "地点待定";
+          const location = item.room?.name || item.location || "地点待定";
           return (
             <div
               key={item.id || `${weekday}-${rowStart}-${idx}`}

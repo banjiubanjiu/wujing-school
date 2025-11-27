@@ -39,6 +39,7 @@ import {
   fetchStudents,
   fetchTerms,
   fetchTrainingPlans,
+  fetchRooms,
   publishGrades,
   reviewGrade,
   updateScheduleEntry,
@@ -717,6 +718,7 @@ export function SchedulePanel() {
   const { data: courses = [] } = useQuery({ queryKey: ["courses"], queryFn: () => fetchCourses() });
   const { data: teachers = [] } = useQuery({ queryKey: ["teachers"], queryFn: () => fetchTeachers() });
   const { data: terms = [] } = useQuery({ queryKey: ["terms"], queryFn: () => fetchTerms() });
+  const { data: rooms = [] } = useQuery({ queryKey: ["rooms"], queryFn: () => fetchRooms() });
   const selectedScheduleCourseId = Form.useWatch("course_id", createForm);
   const selectedScheduleCourse = useMemo(
     () => (courses as Course[]).find((c) => c.id === selectedScheduleCourseId),
@@ -746,6 +748,10 @@ export function SchedulePanel() {
   const scheduleTeacherOptions = useMemo(
     () => (teachers as Teacher[]).map((t) => ({ value: t.id, label: `${t.user.full_name} (${t.id})` })),
     [teachers]
+  );
+  const scheduleRoomOptions = useMemo(
+    () => rooms.map((r) => ({ value: r.id, label: `${r.name} (${r.code})${r.building ? ` · ${r.building}` : ""}` })),
+    [rooms]
   );
   const scheduleTermOptions = useMemo(() => (terms as Term[]).map((t) => ({ value: t.id, label: t.name })), [terms]);
   const filterTermId = Form.useWatch("term_id", filterForm);
@@ -810,11 +816,15 @@ export function SchedulePanel() {
     { title: "班级", dataIndex: ["class_info", "name"], render: (v: string, r: ScheduleEntry) => v || r.class_id || "-" },
     { title: "星期", dataIndex: "weekday" },
     { title: "节次", render: (_: unknown, r: ScheduleEntry) => `${r.start_slot}-${r.end_slot}` },
-    { title: "地点", dataIndex: "location" },
     {
       title: "教师",
       dataIndex: "teacher_id",
       render: (v: number) => (teachers as Teacher[]).find((t) => t.id === v)?.user.full_name || v,
+    },
+    {
+      title: "地点",
+      dataIndex: "room_id",
+      render: (_: unknown, r: ScheduleEntry) => r.room?.name || r.location || "-",
     },
   ];
 
@@ -879,6 +889,7 @@ export function SchedulePanel() {
                   course_id: entry.course_id,
                   class_id: entry.class_id,
                   teacher_id: entry.teacher_id,
+                  room_id: entry.room_id,
                   weekday: entry.weekday,
                   start_slot: entry.start_slot,
                   end_slot: entry.end_slot,
@@ -905,6 +916,7 @@ export function SchedulePanel() {
                   course_id: record.course_id,
                   class_id: record.class_id,
                   teacher_id: record.teacher_id,
+                  room_id: record.room_id,
                   weekday: record.weekday,
                   start_slot: record.start_slot,
                   end_slot: record.end_slot,
@@ -931,6 +943,9 @@ export function SchedulePanel() {
                 allowClear
                 options={scheduleTeacherOptions}
               />
+            </Form.Item>
+            <Form.Item name="room_id" label="地点">
+              <Select showSearch optionFilterProp="label" allowClear options={scheduleRoomOptions} placeholder="选择教室/场地" />
             </Form.Item>
             <Form.Item name="weekday" label="星期" rules={[{ required: true }]}>
               <InputNumber style={{ width: "100%" }} min={1} max={7} />
@@ -1046,6 +1061,7 @@ export function ExamPanel() {
   const { data: courses = [] } = useQuery({ queryKey: ["courses"], queryFn: () => fetchCourses() });
   const { data: classes = [] } = useQuery({ queryKey: ["classes"], queryFn: () => fetchClasses() });
   const { data: terms = [] } = useQuery({ queryKey: ["terms"], queryFn: () => fetchTerms() });
+  const { data: rooms = [] } = useQuery({ queryKey: ["rooms"], queryFn: () => fetchRooms() });
   const selectedExamCourseId = Form.useWatch("course_id", form);
   const selectedExamCourse = useMemo(
     () => (courses as Course[]).find((c) => c.id === selectedExamCourseId),
@@ -1095,7 +1111,7 @@ export function ExamPanel() {
     { title: "日期", dataIndex: "exam_date" },
     { title: "时间", dataIndex: "start_time" },
     { title: "时长", dataIndex: "duration_minutes" },
-    { title: "地点", dataIndex: "location" },
+    { title: "地点", render: (_: unknown, r: Exam) => r.room?.name || r.location || "-" },
     { title: "监考", dataIndex: "invigilators" },
   ];
 
@@ -1121,6 +1137,14 @@ export function ExamPanel() {
             </Form.Item>
             <Form.Item name="term_id" label="学期">
               <Select showSearch optionFilterProp="label" allowClear options={examTermOptions} />
+            </Form.Item>
+            <Form.Item name="room_id" label="地点">
+              <Select
+                showSearch
+                optionFilterProp="label"
+                allowClear
+                options={rooms.map((r) => ({ value: r.id, label: `${r.name} (${r.code})${r.building ? ` · ${r.building}` : ""}` }))}
+              />
             </Form.Item>
             <Form.Item name="exam_type" label="类型">
               <Input placeholder="期末/期中/补考.." />

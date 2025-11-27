@@ -648,6 +648,7 @@ def my_schedule(
 def schedule_admin(
     class_id: Optional[int] = None,
     teacher_id: Optional[int] = None,
+    room_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(require_roles(["ADMIN"])),
 ):
@@ -656,6 +657,7 @@ def schedule_admin(
         .options(
             selectinload(models.ScheduleEntry.course),
             selectinload(models.ScheduleEntry.class_info),
+            selectinload(models.ScheduleEntry.room),
         )
         .order_by(models.ScheduleEntry.weekday, models.ScheduleEntry.start_slot)
     )
@@ -663,6 +665,8 @@ def schedule_admin(
         query = query.filter(models.ScheduleEntry.class_id == class_id)
     if teacher_id:
         query = query.filter(models.ScheduleEntry.teacher_id == teacher_id)
+    if room_id:
+        query = query.filter(models.ScheduleEntry.room_id == room_id)
     return query.all()
 
 
@@ -675,6 +679,7 @@ def find_schedule_conflicts(
     teacher_id: Optional[int],
     location: Optional[str],
     exclude_id: Optional[int] = None,
+    room_id: Optional[int] = None,
 ):
     query = db.query(models.ScheduleEntry).filter(models.ScheduleEntry.weekday == weekday)
     query = query.filter(models.ScheduleEntry.start_slot <= end_slot).filter(
@@ -685,6 +690,8 @@ def find_schedule_conflicts(
         conflict_filters.append(models.ScheduleEntry.class_id == class_id)
     if teacher_id:
         conflict_filters.append(models.ScheduleEntry.teacher_id == teacher_id)
+    if room_id:
+        conflict_filters.append(models.ScheduleEntry.room_id == room_id)
     if location:
         conflict_filters.append(models.ScheduleEntry.location == location)
     if conflict_filters:
@@ -708,6 +715,7 @@ def create_schedule_entry(
         class_id=payload.class_id,
         teacher_id=payload.teacher_id,
         location=payload.location,
+        room_id=payload.room_id,
         exclude_id=None,
     )
     if conflicts:
@@ -756,6 +764,7 @@ def update_schedule_entry(
         class_id=new_class_id,
         teacher_id=new_teacher_id,
         location=new_location,
+        room_id=data.get("room_id", entry.room_id),
         exclude_id=entry_id,
     )
     if conflicts:
@@ -789,6 +798,68 @@ def delete_schedule_entry(
     if not entry:
         raise HTTPException(status_code=404, detail="Schedule entry not found")
     db.delete(entry)
+    db.commit()
+    return {"success": True}
+
+
+@router.get("/rooms", response_model=List[schemas.RoomOut])
+def list_rooms(
+    q: Optional[str] = None,
+    room_type: Optional[str] = None,
+    active: Optional[bool] = None,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_roles(["ADMIN"])),
+):
+    query = db.query(models.Room)
+    if q:
+        query = query.filter(models.Room.name.ilike(f"%{q}%") | models.Room.code.ilike(f"%{q}%"))
+    if room_type:
+        query = query.filter(models.Room.room_type == room_type)
+    if active is not None:
+        query = query.filter(models.Room.active == active)
+    return query.order_by(models.Room.name).all()
+
+
+@router.post("/rooms", response_model=schemas.RoomOut)
+def create_room(
+    payload: schemas.RoomCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_roles(["ADMIN"])),
+):
+    room = models.Room(**payload.dict())
+    db.add(room)
+    db.commit()
+    db.refresh(room)
+    return room
+
+
+@router.put("/rooms/{room_id}", response_model=schemas.RoomOut)
+def update_room(
+    room_id: int,
+    payload: schemas.RoomUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_roles(["ADMIN"])),
+):
+    room = db.get(models.Room, room_id)
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    for k, v in payload.dict(exclude_unset=True).items():
+        setattr(room, k, v)
+    db.commit()
+    db.refresh(room)
+    return room
+
+
+@router.delete("/rooms/{room_id}")
+def delete_room(
+    room_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_roles(["ADMIN"])),
+):
+    room = db.get(models.Room, room_id)
+    if not room:
+        raise HTTPException(status_code=404, detail="Room not found")
+    db.delete(room)
     db.commit()
     return {"success": True}
 
