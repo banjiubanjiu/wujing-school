@@ -104,6 +104,14 @@ export function SchedulePanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSchedule]);
   const isEditingSchedule = Boolean(selectedSchedule?.id);
+  const handleEmptySlotClick = ({ weekday, slot }: { weekday: number; slot: number }) => {
+    setSelectedSchedule(null);
+    createForm.setFieldsValue({
+      weekday,
+      start_slot: slot,
+      end_slot: slot,
+    });
+  };
   const handleScheduleSubmit = (vals: any) => {
     if (selectedSchedule?.id) {
       updateScheduleMut.mutate({ id: selectedSchedule.id, data: vals });
@@ -181,6 +189,7 @@ export function SchedulePanel() {
                 setSelectedSchedule(entry);
                 fillFormFromSchedule(entry);
               }}
+              onSlotClick={handleEmptySlotClick}
             />
           </Card>
         </Col>
