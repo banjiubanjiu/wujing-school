@@ -64,15 +64,6 @@ import type {
 
 const PAGE_SIZE = 8;
 
-const roomOrLocationRule = (form: any, message: string) => ({
-  validator() {
-    const roomId = form.getFieldValue("room_id");
-    const location = form.getFieldValue("location");
-    if (roomId || location) return Promise.resolve();
-    return Promise.reject(new Error(message));
-  },
-});
-
 const formatRoomLabel = (room?: Room | null) => {
   if (!room) return "-";
   const main = room.name || room.code;
@@ -735,7 +726,6 @@ export function SchedulePanel() {
   const [roomForm] = Form.useForm();
   const [selectedSchedule, setSelectedSchedule] = useState<ScheduleEntry | null>(null);
   const [roomModalOpen, setRoomModalOpen] = useState(false);
-  const [customLocationVisible, setCustomLocationVisible] = useState(false);
   const queryClient = useQueryClient();
   const { data: classes = [] } = useQuery({ queryKey: ["classes"], queryFn: () => fetchClasses() });
   const { data: courses = [] } = useQuery({ queryKey: ["courses"], queryFn: () => fetchCourses() });
@@ -920,7 +910,6 @@ export function SchedulePanel() {
                 }}
               onEntryClick={(entry) => {
                 setSelectedSchedule(entry);
-                setCustomLocationVisible(Boolean(entry.location && !entry.room_id));
                 createForm.setFieldsValue({
                   course_id: entry.course_id,
                   class_id: entry.class_id,
@@ -948,7 +937,6 @@ export function SchedulePanel() {
               onRow={(record) => ({
               onClick: () => {
                 setSelectedSchedule(record);
-                setCustomLocationVisible(Boolean(record.location && !record.room_id));
                 createForm.setFieldsValue({
                   course_id: record.course_id,
                   class_id: record.class_id,
@@ -979,7 +967,7 @@ export function SchedulePanel() {
             <Form.Item
               name="room_id"
               label="地点(房间)"
-              rules={[roomOrLocationRule(createForm, "请选择地点或填写自定义地点")]}
+              rules={[{ required: true, message: "请选择地点" }]}
             >
               <Space.Compact style={{ width: "100%" }}>
                 <Select
@@ -993,37 +981,15 @@ export function SchedulePanel() {
                 <Button onClick={() => setRoomModalOpen(true)}>+ 新建场地</Button>
               </Space.Compact>
             </Form.Item>
-            {!customLocationVisible && (
-              <div style={{ marginBottom: 12 }}>
-                <Button type="link" onClick={() => setCustomLocationVisible(true)}>
-                  没有录入的场地？填写自定义地点
-                </Button>
-              </div>
-            )}
             <Form.Item name="weekday" label="星期" rules={[{ required: true }]}>
               <InputNumber style={{ width: "100%" }} min={1} max={7} />
             </Form.Item>
-              <Form.Item name="start_slot" label="开始节次" rules={[{ required: true }]}>
-                <InputNumber style={{ width: "100%" }} min={1} max={12} />
-              </Form.Item>
-              <Form.Item name="end_slot" label="结束节次" rules={[{ required: true }]}>
-                <InputNumber style={{ width: "100%" }} min={1} max={12} />
-              </Form.Item>
-              {customLocationVisible && (
-                <Form.Item
-                  name="location"
-                  label="自定义地点"
-                  rules={[roomOrLocationRule(createForm, "请选择地点或填写自定义地点")]}
-                >
-                  <Input
-                    placeholder="未在列表中的场地，如外训基地、借用场地"
-                    onBlur={() => {
-                      const val = createForm.getFieldValue("location");
-                      if (!val) setCustomLocationVisible(false);
-                    }}
-                  />
-                </Form.Item>
-              )}
+            <Form.Item name="start_slot" label="开始节次" rules={[{ required: true }]}>
+              <InputNumber style={{ width: "100%" }} min={1} max={12} />
+            </Form.Item>
+            <Form.Item name="end_slot" label="结束节次" rules={[{ required: true }]}>
+              <InputNumber style={{ width: "100%" }} min={1} max={12} />
+            </Form.Item>
             <Form.Item>
               <Space>
                 <Button
@@ -1046,7 +1012,6 @@ export function SchedulePanel() {
                   onClick={() => {
                     setSelectedSchedule(null);
                     createForm.resetFields();
-                    setCustomLocationVisible(false);
                   }}
                 >
                   清空
