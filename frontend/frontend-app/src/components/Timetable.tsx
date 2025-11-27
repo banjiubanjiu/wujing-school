@@ -5,12 +5,13 @@ interface TimetableProps {
   schedule: ScheduleEntry[];
   title?: string;
   maxSlot?: number;
+  onEntryClick?: (entry: ScheduleEntry) => void;
 }
 
 const weekdays = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
 const palette = ["#e6f4ff", "#f9f0ff", "#f6ffed", "#fff7e6", "#e6fffb", "#fef6fb"];
 
-export function Timetable({ schedule, title = "课程表", maxSlot }: TimetableProps) {
+export function Timetable({ schedule, title = "课程表", maxSlot, onEntryClick }: TimetableProps) {
   const slots = maxSlot || Math.max(8, ...schedule.map((s) => s.end_slot || 0));
   const gridTemplateRows = `40px repeat(${slots}, 80px)`;
   const gridTemplateColumns = `60px repeat(7, 1fr)`;
@@ -80,7 +81,9 @@ export function Timetable({ schedule, title = "课程表", maxSlot }: TimetableP
                 padding: "8px 10px",
                 overflow: "hidden",
                 boxShadow: "0 1px 2px rgba(0,0,0,0.08)",
+                cursor: onEntryClick ? "pointer" : "default",
               }}
+              onClick={() => onEntryClick?.(item)}
             >
               <div style={{ fontWeight: 600, marginBottom: 4 }}>{courseName}</div>
               {className && (

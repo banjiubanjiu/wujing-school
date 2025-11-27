@@ -15,7 +15,7 @@ import {
   Tag,
   message,
 } from "antd";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "../../components/Layout";
 import { Timetable } from "../../components/Timetable";
@@ -709,6 +709,7 @@ export function GradePanel() {
 export function SchedulePanel() {
   const [filterForm] = Form.useForm();
   const [createForm] = Form.useForm();
+  const [selectedSchedule, setSelectedSchedule] = useState<ScheduleEntry | null>(null);
   const queryClient = useQueryClient();
   const { data: classes = [] } = useQuery({ queryKey: ["classes"], queryFn: () => fetchClasses() });
   const { data: courses = [] } = useQuery({ queryKey: ["courses"], queryFn: () => fetchCourses() });
@@ -830,7 +831,28 @@ export function SchedulePanel() {
           }
         >
           <div style={{ marginBottom: 12 }}>
-            <Timetable schedule={filteredSchedule as ScheduleEntry[]} title="周视图" />
+            <Timetable
+              schedule={filteredSchedule as ScheduleEntry[]}
+              title="周视图"
+              onEntryClick={(entry) => {
+                setSelectedSchedule(entry);
+                createForm.setFieldsValue({
+                  course_id: entry.course_id,
+                  class_id: entry.class_id,
+                  teacher_id: entry.teacher_id,
+                  weekday: entry.weekday,
+                  start_slot: entry.start_slot,
+                  end_slot: entry.end_slot,
+                  location: entry.location,
+                });
+              }}
+            />
+            {selectedSchedule && (
+              <div style={{ marginTop: 8, color: "#666", fontSize: 12 }}>
+                已选：{selectedSchedule.course?.name || selectedSchedule.course_id} · 周{selectedSchedule.weekday} ·{" "}
+                {selectedSchedule.start_slot}-{selectedSchedule.end_slot}（自动填充到右侧表单，可调整后保存为新排课）
+              </div>
+            )}
           </div>
           <Table<ScheduleEntry> rowKey="id" dataSource={filteredSchedule} columns={columns} pagination={{ pageSize: PAGE_SIZE }} />
         </Card>
