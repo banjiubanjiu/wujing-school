@@ -674,6 +674,7 @@ def find_schedule_conflicts(
     class_id: Optional[int],
     teacher_id: Optional[int],
     location: Optional[str],
+    exclude_id: Optional[int] = None,
 ):
     query = db.query(models.ScheduleEntry).filter(models.ScheduleEntry.weekday == weekday)
     query = query.filter(models.ScheduleEntry.start_slot <= end_slot).filter(
@@ -688,6 +689,8 @@ def find_schedule_conflicts(
         conflict_filters.append(models.ScheduleEntry.location == location)
     if conflict_filters:
         query = query.filter(or_(*conflict_filters))
+    if exclude_id:
+        query = query.filter(models.ScheduleEntry.id != exclude_id)
     return query.all()
 
 
@@ -705,6 +708,7 @@ def create_schedule_entry(
         class_id=payload.class_id,
         teacher_id=payload.teacher_id,
         location=payload.location,
+        exclude_id=None,
     )
     if conflicts:
         detail = [
@@ -725,6 +729,68 @@ def create_schedule_entry(
     db.commit()
     db.refresh(entry)
     return entry
+
+
+@router.put("/schedule/{entry_id}", response_model=schemas.ScheduleEntryOut)
+def update_schedule_entry(
+    entry_id: int,
+    payload: schemas.ScheduleUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_roles(["ADMIN"])),
+):
+    entry = db.get(models.ScheduleEntry, entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Schedule entry not found")
+    data = payload.dict(exclude_unset=True)
+    new_weekday = data.get("weekday", entry.weekday)
+    new_start_slot = data.get("start_slot", entry.start_slot)
+    new_end_slot = data.get("end_slot", entry.end_slot)
+    new_class_id = data.get("class_id", entry.class_id)
+    new_teacher_id = data.get("teacher_id", entry.teacher_id)
+    new_location = data.get("location", entry.location)
+    conflicts = find_schedule_conflicts(
+        db,
+        weekday=new_weekday,
+        start_slot=new_start_slot,
+        end_slot=new_end_slot,
+        class_id=new_class_id,
+        teacher_id=new_teacher_id,
+        location=new_location,
+        exclude_id=entry_id,
+    )
+    if conflicts:
+        detail = [
+            {
+                "id": c.id,
+                "course": c.course_id,
+                "class": c.class_id,
+                "teacher": c.teacher_id,
+                "weekday": c.weekday,
+                "slot": f"{c.start_slot}-{c.end_slot}",
+                "location": c.location,
+            }
+            for c in conflicts
+        ]
+        raise HTTPException(status_code=400, detail={"message": "Schedule conflict", "conflicts": detail})
+    for key, value in data.items():
+        setattr(entry, key, value)
+    db.commit()
+    db.refresh(entry)
+    return entry
+
+
+@router.delete("/schedule/{entry_id}")
+def delete_schedule_entry(
+    entry_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_roles(["ADMIN"])),
+):
+    entry = db.get(models.ScheduleEntry, entry_id)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Schedule entry not found")
+    db.delete(entry)
+    db.commit()
+    return {"success": True}
 
 
 @router.get("/grades/my", response_model=List[schemas.GradeOut])

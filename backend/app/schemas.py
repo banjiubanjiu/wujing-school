@@ -267,6 +267,16 @@ class ScheduleCreate(BaseModel):
     location: Optional[str] = None
 
 
+class ScheduleUpdate(BaseModel):
+    course_id: Optional[int] = None
+    class_id: Optional[int] = None
+    teacher_id: Optional[int] = None
+    weekday: Optional[int] = None
+    start_slot: Optional[int] = None
+    end_slot: Optional[int] = None
+    location: Optional[str] = None
+
+
 class GradeOut(ORMModel):
     id: int
     student_id: int

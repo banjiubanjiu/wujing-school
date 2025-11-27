@@ -27,6 +27,7 @@ import {
   createScheduleEntry,
   createTerm,
   createTrainingPlan,
+  deleteScheduleEntry,
   fetchClasses,
   fetchCourses,
   fetchExams,
@@ -40,6 +41,7 @@ import {
   fetchTrainingPlans,
   publishGrades,
   reviewGrade,
+  updateScheduleEntry,
   updateMajor,
   updateTerm,
 } from "../../api/entities";
@@ -763,15 +765,44 @@ export function SchedulePanel() {
       }),
     [schedule, filterTermId]
   );
+  const isEditingSchedule = Boolean(selectedSchedule?.id);
+  const handleScheduleSubmit = (vals: any) => {
+    if (selectedSchedule?.id) {
+      updateScheduleMut.mutate({ id: selectedSchedule.id, data: vals });
+    } else {
+      createMut.mutate(vals);
+    }
+  };
 
   const createMut = useMutation({
     mutationFn: createScheduleEntry,
     onSuccess: () => {
       message.success("排课成功");
       createForm.resetFields();
+      setSelectedSchedule(null);
       queryClient.invalidateQueries({ queryKey: ["schedule"] });
     },
     onError: (err: any) => message.error(err.message || "创建失败"),
+  });
+  const updateScheduleMut = useMutation({
+    mutationFn: (payload: { id: number; data: any }) => updateScheduleEntry(payload.id, payload.data),
+    onSuccess: () => {
+      message.success("排课已更新");
+      setSelectedSchedule(null);
+      createForm.resetFields();
+      queryClient.invalidateQueries({ queryKey: ["schedule"] });
+    },
+    onError: (err: any) => message.error(err.message || "更新失败"),
+  });
+  const deleteScheduleMut = useMutation({
+    mutationFn: (id: number) => deleteScheduleEntry(id),
+    onSuccess: () => {
+      message.success("排课已删除");
+      setSelectedSchedule(null);
+      createForm.resetFields();
+      queryClient.invalidateQueries({ queryKey: ["schedule"] });
+    },
+    onError: (err: any) => message.error(err.message || "删除失败"),
   });
 
   const columns = [
@@ -854,12 +885,31 @@ export function SchedulePanel() {
               </div>
             )}
           </div>
-          <Table<ScheduleEntry> rowKey="id" dataSource={filteredSchedule} columns={columns} pagination={{ pageSize: PAGE_SIZE }} />
+          <Table<ScheduleEntry>
+            rowKey="id"
+            dataSource={filteredSchedule}
+            columns={columns}
+            pagination={{ pageSize: PAGE_SIZE }}
+            onRow={(record) => ({
+              onClick: () => {
+                setSelectedSchedule(record);
+                createForm.setFieldsValue({
+                  course_id: record.course_id,
+                  class_id: record.class_id,
+                  teacher_id: record.teacher_id,
+                  weekday: record.weekday,
+                  start_slot: record.start_slot,
+                  end_slot: record.end_slot,
+                  location: record.location,
+                });
+              },
+            })}
+          />
         </Card>
       </Col>
       <Col span={10}>
-        <Card title="创建排课">
-          <Form layout="vertical" form={createForm} onFinish={createMut.mutate}>
+        <Card title="创建/编辑排课">
+          <Form layout="vertical" form={createForm} onFinish={handleScheduleSubmit}>
             <Form.Item name="course_id" label="课程" rules={[{ required: true }]}>
               <Select showSearch optionFilterProp="label" options={scheduleCourseOptions} />
             </Form.Item>
@@ -887,9 +937,24 @@ export function SchedulePanel() {
               <Input />
             </Form.Item>
             <Form.Item>
-              <Button type="primary" htmlType="submit" loading={createMut.isPending}>
-                创建
-              </Button>
+              <Space>
+                <Button type="primary" htmlType="submit" loading={isEditingSchedule ? updateScheduleMut.isPending : createMut.isPending}>
+                  {isEditingSchedule ? "更新排课" : "创建排课"}
+                </Button>
+                {isEditingSchedule && (
+                  <Button danger loading={deleteScheduleMut.isPending} onClick={() => selectedSchedule && deleteScheduleMut.mutate(selectedSchedule.id!)}>
+                    删除排课
+                  </Button>
+                )}
+                <Button
+                  onClick={() => {
+                    setSelectedSchedule(null);
+                    createForm.resetFields();
+                  }}
+                >
+                  清空
+                </Button>
+              </Space>
             </Form.Item>
           </Form>
         </Card>

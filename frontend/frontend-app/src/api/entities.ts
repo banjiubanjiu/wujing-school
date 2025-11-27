@@ -214,6 +214,27 @@ export async function createScheduleEntry(payload: {
   return res.data as ScheduleEntry;
 }
 
+export async function updateScheduleEntry(
+  id: number,
+  payload: Partial<{
+    course_id: number;
+    class_id?: number;
+    teacher_id?: number;
+    weekday: number;
+    start_slot: number;
+    end_slot: number;
+    location?: string;
+  }>
+) {
+  const res = await api.put(`/api/schedule/${id}`, payload);
+  return res.data as ScheduleEntry;
+}
+
+export async function deleteScheduleEntry(id: number) {
+  const res = await api.delete(`/api/schedule/${id}`);
+  return res.data;
+}
+
 export async function fetchMenus(): Promise<MenuResponse> {
   const res = await api.get("/api/menus");
   return res.data;
