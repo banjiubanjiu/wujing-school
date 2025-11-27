@@ -7,6 +7,27 @@ export interface User {
   active: boolean;
 }
 
+export interface Role {
+  id: number;
+  code: string;
+  name: string;
+}
+
+export interface Permission {
+  code: string;
+  name: string;
+  description?: string;
+  category?: string;
+}
+
+export interface RoleWithPermissions extends Role {
+  permissions: Permission[];
+}
+
+export interface UserDetail extends User {
+  roles: Role[];
+}
+
 export interface OrgUnit {
   id: number;
   name: string;

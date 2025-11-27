@@ -7,6 +7,7 @@ import { SchedulePanel } from "./panels/SchedulePanel";
 import { TrainingPlanPanel } from "./panels/TrainingPlanPanel";
 import { GradePanel } from "./panels/GradePanel";
 import { ExamPanel } from "./panels/ExamPanel";
+import { AccessPanel } from "./panels/AccessPanel";
 
 export function AdminDashboard() {
   return (
@@ -60,6 +61,14 @@ export function AdminExamsPage() {
   return (
     <AppLayout navItems={adminNav} title="考试安排" subtitle="考试创建与查询">
       <ExamPanel />
+    </AppLayout>
+  );
+}
+
+export function AdminAccessPage() {
+  return (
+    <AppLayout navItems={adminNav} title="账号与权限" subtitle="用户、角色与权限管理">
+      <AccessPanel />
     </AppLayout>
   );
 }

@@ -1,5 +1,24 @@
 import { api } from "./client";
-import type { Term, Student, ClassItem, Course, Major, Exam, Grade, MenuResponse, HomeResponse, TrainingPlan, ScheduleEntry, OrgUnit, Teacher, Room } from "./types";
+import type {
+  Term,
+  Student,
+  ClassItem,
+  Course,
+  Major,
+  Exam,
+  Grade,
+  MenuResponse,
+  HomeResponse,
+  TrainingPlan,
+  ScheduleEntry,
+  OrgUnit,
+  Teacher,
+  Room,
+  Role,
+  RoleWithPermissions,
+  Permission,
+  UserDetail,
+} from "./types";
 
 export async function fetchHome(): Promise<HomeResponse> {
   const res = await api.get("/api/home");
@@ -242,5 +261,47 @@ export async function createRoom(payload: {
 
 export async function fetchMenus(): Promise<MenuResponse> {
   const res = await api.get("/api/menus");
+  return res.data;
+}
+
+export async function fetchPermissions() {
+  const res = await api.get<Permission[]>("/api/permissions");
+  return res.data;
+}
+
+export async function fetchRoles() {
+  const res = await api.get<RoleWithPermissions[]>("/api/roles");
+  return res.data;
+}
+
+export async function updateRolePermissions(roleId: number, permissions: string[]) {
+  const res = await api.put<RoleWithPermissions>(`/api/roles/${roleId}/permissions`, { permissions });
+  return res.data;
+}
+
+export async function fetchUsers(params?: { q?: string; role_code?: string; active?: boolean }) {
+  const res = await api.get<UserDetail[]>("/api/users", { params });
+  return res.data;
+}
+
+export async function createUser(payload: {
+  username: string;
+  password: string;
+  full_name: string;
+  email?: string;
+  org_unit_id?: number;
+  role_codes?: string[];
+}) {
+  const res = await api.post<UserDetail>("/api/users", { ...payload, role_codes: payload.role_codes || [] });
+  return res.data;
+}
+
+export async function updateUserRoles(userId: number, role_codes: string[]) {
+  const res = await api.put<UserDetail>(`/api/users/${userId}/roles`, { role_codes });
+  return res.data;
+}
+
+export async function resetUserPassword(userId: number, password: string) {
+  const res = await api.post(`/api/users/${userId}/reset-password`, { password });
   return res.data;
 }

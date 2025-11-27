@@ -10,6 +10,7 @@ import {
   AdminTrainingPlansPage,
   AdminGradesPage,
   AdminExamsPage,
+  AdminAccessPage,
 } from "./pages/admin/AdminPages";
 import { StudentDashboard, StudentSchedulePage, StudentGradesPage, StudentExamsPage } from "./pages/student/StudentPages";
 import { TeacherDashboard, TeacherCoursesPage, TeacherSchedulePage, TeacherGradesPage } from "./pages/teacher/TeacherPages";
@@ -60,6 +61,7 @@ export default function App() {
         <Route path="plans" element={<AdminTrainingPlansPage />} />
         <Route path="grades" element={<AdminGradesPage />} />
         <Route path="exams" element={<AdminExamsPage />} />
+        <Route path="access" element={<AdminAccessPage />} />
       </Route>
       <Route
         path="/teacher"

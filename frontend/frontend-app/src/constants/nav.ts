@@ -8,6 +8,7 @@ export const adminNav: NavItem[] = [
   { key: "plans", label: "培养方案", path: "/admin/plans" },
   { key: "grades", label: "成绩审核", path: "/admin/grades" },
   { key: "exams", label: "考试", path: "/admin/exams" },
+  { key: "access", label: "账号/权限", path: "/admin/access" },
 ];
 
 export const teacherNav: NavItem[] = [
