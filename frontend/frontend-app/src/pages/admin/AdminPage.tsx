@@ -18,6 +18,7 @@ import {
 import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "../../components/Layout";
+import { Timetable } from "../../components/Timetable";
 import {
   createClass,
   createCourse,
@@ -807,6 +808,9 @@ export function SchedulePanel() {
             </Form>
           }
         >
+          <div style={{ marginBottom: 12 }}>
+            <Timetable schedule={schedule as ScheduleEntry[]} title="周视图" />
+          </div>
           <Table<ScheduleEntry> rowKey="id" dataSource={schedule} columns={columns} pagination={{ pageSize: PAGE_SIZE }} />
         </Card>
       </Col>

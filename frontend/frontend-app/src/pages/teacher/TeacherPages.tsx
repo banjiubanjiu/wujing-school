@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Card, Col, Form, InputNumber, Row, Select, Statistic, Table, Tag, message } from "antd";
 import { AppLayout } from "../../components/Layout";
+import { Timetable } from "../../components/Timetable";
 import { teacherNav } from "../../constants/nav";
 import { fetchCourses, fetchGrades, fetchHome, fetchMySchedule, fetchStudents, submitGrade, upsertGrade } from "../../api/entities";
 import type { Course, Grade, ScheduleEntry, Student } from "../../api/types";
@@ -70,19 +71,30 @@ export function TeacherDashboard() {
 
 export function TeacherSchedulePage() {
   const { data: schedule = [] } = useQuery({ queryKey: ["teacher-schedule"], queryFn: () => fetchMySchedule() });
-  const columns = [
-    { title: "星期", dataIndex: "weekday", render: (v: number) => weekdayText[v] || v },
-    { title: "课程", dataIndex: ["course", "name"], render: (v: string, r: ScheduleEntry) => v || r.course_id },
-    { title: "班级", dataIndex: ["class_info", "name"], render: (v: string, r: ScheduleEntry) => v || r.class_id || "-" },
-    { title: "节次", render: (_: unknown, r: ScheduleEntry) => `${r.start_slot}-${r.end_slot}` },
-    { title: "地点", dataIndex: "location", render: (v: string) => v || "-" },
-  ];
-
   return (
     <AppLayout navItems={teacherNav} title="授课安排">
-      <Card>
-        <Table<ScheduleEntry> rowKey="id" dataSource={schedule} columns={columns} pagination={{ pageSize: 10 }} />
-      </Card>
+      <Row gutter={16}>
+        <Col span={16}>
+          <Timetable schedule={schedule as ScheduleEntry[]} title="周课程表" />
+        </Col>
+        <Col span={8}>
+          <Card title="列表视图">
+            <Table<ScheduleEntry>
+              rowKey="id"
+              dataSource={schedule}
+              columns={[
+                { title: "星期", dataIndex: "weekday", render: (v: number) => weekdayText[v] || v },
+                { title: "课程", dataIndex: ["course", "name"], render: (v: string, r: ScheduleEntry) => v || r.course_id },
+                { title: "班级", dataIndex: ["class_info", "name"], render: (v: string, r: ScheduleEntry) => v || r.class_id || "-" },
+                { title: "节次", render: (_: unknown, r: ScheduleEntry) => `${r.start_slot}-${r.end_slot}` },
+                { title: "地点", dataIndex: "location", render: (v: string) => v || "-" },
+              ]}
+              pagination={{ pageSize: 10 }}
+              size="small"
+            />
+          </Card>
+        </Col>
+      </Row>
     </AppLayout>
   );
 }
