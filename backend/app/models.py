@@ -52,6 +52,17 @@ class Role(Base):
         cascade="all, delete-orphan",
         overlaps="users",
     )
+    permissions = relationship(
+        "Permission",
+        secondary="role_permissions",
+        back_populates="roles",
+    )
+    role_permissions = relationship(
+        "RolePermission",
+        back_populates="role",
+        cascade="all, delete-orphan",
+        overlaps="permissions,roles",
+    )
 
 
 class OrgUnit(Base):
@@ -114,6 +125,39 @@ class UserRole(Base):
         back_populates="user_roles",
         overlaps="users,roles",
     )
+
+
+class Permission(Base):
+    __tablename__ = "permissions"
+
+    code = Column(String(100), primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    description = Column(String(255))
+    category = Column(String(100))
+    created_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
+
+    roles = relationship(
+        "Role",
+        secondary="role_permissions",
+        back_populates="permissions",
+    )
+    role_permissions = relationship(
+        "RolePermission",
+        back_populates="permission",
+        cascade="all, delete-orphan",
+        overlaps="permissions,roles",
+    )
+
+
+class RolePermission(Base):
+    __tablename__ = "role_permissions"
+
+    role_id = Column(Integer, ForeignKey("roles.id"), primary_key=True)
+    permission_code = Column(String(100), ForeignKey("permissions.code"), primary_key=True)
+    created_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
+
+    role = relationship("Role", back_populates="role_permissions", overlaps="permissions,roles")
+    permission = relationship("Permission", back_populates="role_permissions", overlaps="permissions,roles")
 
 
 class Major(Base):

@@ -9,8 +9,20 @@ class ORMModel(BaseModel):
 
 
 class RoleOut(ORMModel):
+    id: int
     code: str
     name: str
+
+
+class PermissionOut(ORMModel):
+    code: str
+    name: str
+    description: Optional[str] = None
+    category: Optional[str] = None
+
+
+class RoleWithPermissions(RoleOut):
+    permissions: List[PermissionOut] = Field(default_factory=list)
 
 
 class OrgUnitOut(ORMModel):
@@ -124,6 +136,27 @@ class UserOut(ORMModel):
     email: Optional[str] = None
     org_unit_id: Optional[int] = None
     active: bool
+
+
+class UserDetailOut(UserOut):
+    roles: List[RoleOut] = Field(default_factory=list)
+
+
+class UserCreate(BaseModel):
+    username: str
+    password: str
+    full_name: str
+    email: Optional[str] = None
+    org_unit_id: Optional[int] = None
+    role_codes: List[str] = Field(default_factory=list)
+
+
+class UserRoleUpdate(BaseModel):
+    role_codes: List[str] = Field(default_factory=list)
+
+
+class PasswordResetRequest(BaseModel):
+    password: str
 
 
 class LoginRequest(BaseModel):
@@ -242,6 +275,10 @@ class TrainingPlanCreate(BaseModel):
     entry_year: int
     major_id: int
     item_course_ids: List[int] = Field(default_factory=list)
+
+
+class RolePermissionUpdate(BaseModel):
+    permissions: List[str] = Field(default_factory=list)
 
 
 class ScheduleEntryOut(ORMModel):

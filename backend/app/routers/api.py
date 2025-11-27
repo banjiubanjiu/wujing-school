@@ -6,7 +6,13 @@ from sqlalchemy.orm import Session, selectinload
 
 from app import models, schemas
 from app.db import get_db
-from app.routers.auth import get_current_user, get_role_codes, require_roles
+from app.routers.auth import (
+    get_current_user,
+    get_permission_codes,
+    get_role_codes,
+    require_permissions,
+    require_roles,
+)
 
 router = APIRouter(prefix="/api", tags=["api"])
 
@@ -43,6 +49,140 @@ def read_menus(current_user: models.User = Depends(get_current_user)):
         for item in ROLE_MENUS.get(code, []):
             menus.append(schemas.MenuItem(**item))
     return schemas.MenuResponse(roles=list(role_codes), menus=menus)
+
+
+@router.get("/permissions", response_model=List[schemas.PermissionOut])
+def list_permissions(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permissions(["permission:read"])),
+):
+    return db.query(models.Permission).order_by(models.Permission.code).all()
+
+
+@router.get("/roles", response_model=List[schemas.RoleWithPermissions])
+def list_roles(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permissions(["role:read"])),
+):
+    return (
+        db.query(models.Role)
+        .options(selectinload(models.Role.permissions))
+        .order_by(models.Role.id)
+        .all()
+    )
+
+
+@router.put("/roles/{role_id}/permissions", response_model=schemas.RoleWithPermissions)
+def update_role_permissions(
+    role_id: int,
+    payload: schemas.RolePermissionUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permissions(["permission:assign", "role:write"])),
+):
+    role = db.get(models.Role, role_id)
+    if not role:
+        raise HTTPException(status_code=404, detail="Role not found")
+    perms = (
+        db.query(models.Permission)
+        .filter(models.Permission.code.in_(payload.permissions))
+        .all()
+        if payload.permissions
+        else []
+    )
+    role.permissions = perms
+    db.commit()
+    db.refresh(role)
+    db.refresh(role, attribute_names=["permissions"])
+    return role
+
+
+@router.get("/users", response_model=List[schemas.UserDetailOut])
+def list_users(
+    q: Optional[str] = Query(None, description="Search by username/full_name"),
+    role_code: Optional[str] = None,
+    active: Optional[bool] = None,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permissions(["user:read"])),
+):
+    query = db.query(models.User).options(selectinload(models.User.roles))
+    if q:
+        like_pattern = f"%{q}%"
+        query = query.filter(
+            or_(
+                models.User.username.like(like_pattern),
+                models.User.full_name.like(like_pattern),
+            )
+        )
+    if role_code:
+        query = query.join(models.User.roles).filter(models.Role.code == role_code)
+    if active is not None:
+        query = query.filter(models.User.active == active)
+    return query.all()
+
+
+@router.post("/users", response_model=schemas.UserDetailOut, status_code=status.HTTP_201_CREATED)
+def create_user(
+    payload: schemas.UserCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permissions(["user:write"])),
+):
+    if db.query(models.User).filter(models.User.username == payload.username).first():
+        raise HTTPException(status_code=400, detail="Username already exists")
+    roles: list[models.Role] = []
+    if payload.role_codes:
+        roles = (
+            db.query(models.Role).filter(models.Role.code.in_(payload.role_codes)).all()
+        )
+    user = models.User(
+        username=payload.username,
+        password_hash=payload.password,
+        full_name=payload.full_name,
+        email=payload.email,
+        org_unit_id=payload.org_unit_id,
+        roles=roles,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    db.refresh(user, attribute_names=["roles"])
+    return user
+
+
+@router.put("/users/{user_id}/roles", response_model=schemas.UserDetailOut)
+def update_user_roles(
+    user_id: int,
+    payload: schemas.UserRoleUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permissions(["user:write"])),
+):
+    user = db.get(models.User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    roles = (
+        db.query(models.Role).filter(models.Role.code.in_(payload.role_codes)).all()
+        if payload.role_codes
+        else []
+    )
+    user.roles = roles
+    db.commit()
+    db.refresh(user)
+    db.refresh(user, attribute_names=["roles"])
+    return user
+
+
+@router.post("/users/{user_id}/reset-password")
+def reset_user_password(
+    user_id: int,
+    payload: schemas.PasswordResetRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_permissions(["user:write"])),
+):
+    user = db.get(models.User, user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.password_hash = payload.password
+    db.commit()
+    return {"success": True}
 
 
 @router.get("/home")

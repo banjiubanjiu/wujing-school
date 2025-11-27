@@ -5,11 +5,43 @@ from app import models
 from app.db import Base, SessionLocal, engine
 
 
+DEFAULT_PERMISSIONS = [
+    {"code": "user:read", "name": "查看用户"},
+    {"code": "user:write", "name": "管理用户"},
+    {"code": "role:read", "name": "查看角色"},
+    {"code": "role:write", "name": "管理角色"},
+    {"code": "permission:read", "name": "查看权限"},
+    {"code": "permission:assign", "name": "分配权限"},
+    {"code": "exam:write", "name": "管理考试"},
+    {"code": "schedule:write", "name": "管理排课"},
+    {"code": "grade:review", "name": "审核成绩"},
+]
+
+
+def ensure_permissions_seed(db: SessionLocal):
+    # 插入权限表
+    for perm in DEFAULT_PERMISSIONS:
+        exists = db.get(models.Permission, perm["code"])
+        if not exists:
+            db.add(models.Permission(**perm))
+    db.commit()
+
+    # 赋予 ADMIN 全部权限
+    admin_role = db.query(models.Role).filter(models.Role.code == "ADMIN").first()
+    if admin_role:
+        existing_codes = {p.code for p in admin_role.permissions}
+        for perm in db.query(models.Permission).all():
+            if perm.code not in existing_codes:
+                admin_role.permissions.append(perm)
+    db.commit()
+
+
 def init_db_with_sample_data():
     """Create tables and seed a handful of demo records for P0/P1 MVP."""
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
     try:
+        ensure_permissions_seed(db)
         if db.query(models.User).count() > 0:
             return
 
@@ -19,6 +51,7 @@ def init_db_with_sample_data():
         student_role = models.Role(code="STUDENT", name="学员")
         db.add_all([admin_role, teacher_role, student_role])
         db.flush()
+        ensure_permissions_seed(db)
 
         # Org/major/class
         academy = models.OrgUnit(name="警官学院", unit_type="ACADEMY")

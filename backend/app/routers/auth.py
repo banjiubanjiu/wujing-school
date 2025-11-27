@@ -33,6 +33,7 @@ def get_current_user(
             selectinload(models.User.roles),
             selectinload(models.User.student).selectinload(models.Student.class_info),
             selectinload(models.User.teacher),
+            selectinload(models.User.roles).selectinload(models.Role.permissions),
         )
         .filter(models.User.username == username)
         .first()
@@ -46,6 +47,14 @@ def get_role_codes(user: models.User) -> set:
     return {role.code for role in user.roles}
 
 
+def get_permission_codes(user: models.User) -> set:
+    perms = set()
+    for role in user.roles:
+        for perm in role.permissions:
+            perms.add(perm.code)
+    return perms
+
+
 def require_roles(allowed_roles: list[str]):
     def wrapper(current_user: models.User = Depends(get_current_user)):
         role_codes = get_role_codes(current_user)
@@ -53,6 +62,22 @@ def require_roles(allowed_roles: list[str]):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"Role not allowed. Need one of {allowed_roles}",
+            )
+        return current_user
+
+    return wrapper
+
+
+def require_permissions(allowed_permissions: list[str]):
+    def wrapper(current_user: models.User = Depends(get_current_user)):
+        role_codes = get_role_codes(current_user)
+        if "ADMIN" in role_codes:
+            return current_user
+        user_perms = get_permission_codes(current_user)
+        if allowed_permissions and user_perms.isdisjoint(set(allowed_permissions)):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"Permission not allowed. Need one of {allowed_permissions}",
             )
         return current_user
 
