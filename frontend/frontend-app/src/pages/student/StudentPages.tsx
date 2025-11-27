@@ -8,6 +8,7 @@ import { weekdayText } from "../../constants/dates";
 import { studentNav } from "../../constants/nav";
 import { fetchExams, fetchHome, fetchMyGrades, fetchMySchedule, fetchTerms } from "../../api/entities";
 import type { Exam, Grade, ScheduleEntry, Term } from "../../api/types";
+import { AssistantPage } from "../AssistantPage";
 
 export function StudentDashboard() {
   const { data: home, isLoading } = useQuery({ queryKey: ["home"], queryFn: () => fetchHome() });
@@ -190,4 +191,8 @@ export function StudentExamsPage() {
       </Card>
     </AppLayout>
   );
+}
+
+export function StudentAssistantPage() {
+  return <AssistantPage navItems={studentNav} title="AI 助手" subtitle="课程、考试、成绩问答" />;
 }

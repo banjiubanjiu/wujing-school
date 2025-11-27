@@ -5,6 +5,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session, selectinload
 
 from app import models, schemas
+from app.ai_client import chat as ai_chat
 from app.db import get_db
 from app.routers.auth import (
     get_current_user,
@@ -183,6 +184,118 @@ def reset_user_password(
     user.password_hash = payload.password
     db.commit()
     return {"success": True}
+
+
+def _course_risk_snapshot(db: Session, class_keyword: Optional[str] = None, limit: int = 5):
+    # 按课程统计挂科风险（不及格率）
+    results = []
+    course_query = (
+        db.query(models.Course, models.Class, models.Term)
+        .join(models.Class, models.Course.class_id == models.Class.id)
+        .join(models.Term, models.Course.term_id == models.Term.id)
+    )
+    if class_keyword:
+        like_pattern = f"%{class_keyword}%"
+        course_query = course_query.filter(models.Class.name.like(like_pattern) | models.Class.code.like(like_pattern))
+    for course, cls, term in course_query.all():
+        grades = (
+            db.query(models.Grade)
+            .filter(models.Grade.course_id == course.id)
+            .all()
+        )
+        total = len(grades)
+        if total == 0:
+            continue
+        fail_cnt = 0
+        scores = []
+        for g in grades:
+            score = None
+            if g.total_score is not None:
+                score = float(g.total_score)
+            elif g.final_score is not None:
+                score = float(g.final_score)
+            if score is not None:
+                scores.append(score)
+                if score < 60:
+                    fail_cnt += 1
+        avg_score = round(sum(scores) / len(scores), 2) if scores else None
+        risk = round(fail_cnt / total * 100, 2)
+        results.append(
+            {
+                "course": course.name,
+                "course_code": course.code,
+                "class": cls.name,
+                "term": term.name if term else None,
+                "avg_score": avg_score,
+                "fail_ratio": risk,
+                "fail_count": fail_cnt,
+                "total": total,
+            }
+        )
+    return sorted(results, key=lambda x: x["fail_ratio"], reverse=True)[:limit]
+
+
+def _weekly_teaching_snapshot(db: Session):
+    # 简单统计：课程数、班级数、教师数、即将到来的考试数（14天内）、已发布成绩数
+    from datetime import date, timedelta
+
+    today = date.today()
+    in_two_weeks = today + timedelta(days=14)
+    exams = (
+        db.query(models.Exam)
+        .filter(models.Exam.exam_date != None)  # noqa: E711
+        .filter(models.Exam.exam_date >= today)
+        .filter(models.Exam.exam_date <= in_two_weeks)
+        .count()
+    )
+    published_grades = db.query(models.Grade).filter(models.Grade.status == "published").count()
+    return {
+        "courses": db.query(models.Course).count(),
+        "classes": db.query(models.Class).count(),
+        "teachers": db.query(models.Teacher).count(),
+        "students": db.query(models.Student).count(),
+        "upcoming_exams_14d": exams,
+        "published_grades": published_grades,
+    }
+
+
+@router.post("/ai/assistant", response_model=schemas.AIResponse)
+def ai_assistant(
+    payload: schemas.AIRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    role_codes = get_role_codes(current_user)
+    perms = list(get_permission_codes(current_user))
+
+    context_parts = [
+        f"当前用户: {current_user.username} / 角色: {', '.join(role_codes)}",
+    ]
+    if "STUDENT" in role_codes and current_user.student:
+        context_parts.append(f"学生班级: {current_user.student.class_info.name if current_user.student.class_info else current_user.student.class_id}")
+    if "TEACHER" in role_codes and current_user.teacher:
+        context_parts.append("教师身份: 可查看自己课程数据")
+
+    if payload.task == "risk_courses":
+        class_kw = payload.params.get("class_keyword") if payload.params else None
+        risk_data = _course_risk_snapshot(db, class_keyword=class_kw)
+        context_parts.append(f"挂科风险最高课程（按不及格率排序，最多5条）: {risk_data}")
+    elif payload.task == "weekly_report":
+        snapshot = _weekly_teaching_snapshot(db)
+        context_parts.append(f"教学运行概况: {snapshot}")
+
+    system_prompt = (
+        "你是警院教务 AI 助手，请用中文、简洁要点回答。"
+        "若有结构化数据已提供，请基于这些数据归纳；如果数据不足，请说明需要哪些信息。"
+    )
+    combined_context = "\n".join(context_parts)
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "system", "content": combined_context},
+        {"role": "user", "content": payload.prompt},
+    ]
+    answer = ai_chat(messages)
+    return schemas.AIResponse(answer=answer, used_prompt=payload.prompt)
 
 
 @router.get("/home")

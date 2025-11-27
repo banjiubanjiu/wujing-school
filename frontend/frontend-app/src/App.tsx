@@ -11,9 +11,12 @@ import {
   AdminGradesPage,
   AdminExamsPage,
   AdminAccessPage,
+  AdminAssistantPage,
 } from "./pages/admin/AdminPages";
-import { StudentDashboard, StudentSchedulePage, StudentGradesPage, StudentExamsPage } from "./pages/student/StudentPages";
-import { TeacherDashboard, TeacherCoursesPage, TeacherSchedulePage, TeacherGradesPage } from "./pages/teacher/TeacherPages";
+import { StudentDashboard, StudentSchedulePage, StudentGradesPage, StudentExamsPage, StudentAssistantPage } from "./pages/student/StudentPages";
+import { TeacherDashboard, TeacherCoursesPage, TeacherSchedulePage, TeacherGradesPage, TeacherAssistantPage } from "./pages/teacher/TeacherPages";
+import { AssistantPage } from "./pages/AssistantPage";
+import { adminNav, studentNav, teacherNav } from "./constants/nav";
 
 type RequireAuthProps = { children: ReactElement; role?: string };
 
@@ -62,6 +65,7 @@ export default function App() {
         <Route path="grades" element={<AdminGradesPage />} />
         <Route path="exams" element={<AdminExamsPage />} />
         <Route path="access" element={<AdminAccessPage />} />
+        <Route path="assistant" element={<AdminAssistantPage />} />
       </Route>
       <Route
         path="/teacher"
@@ -76,6 +80,7 @@ export default function App() {
         <Route path="schedule" element={<TeacherSchedulePage />} />
         <Route path="courses" element={<TeacherCoursesPage />} />
         <Route path="grades" element={<TeacherGradesPage />} />
+        <Route path="assistant" element={<TeacherAssistantPage />} />
       </Route>
       <Route
         path="/student"
@@ -90,6 +95,7 @@ export default function App() {
         <Route path="schedule" element={<StudentSchedulePage />} />
         <Route path="grades" element={<StudentGradesPage />} />
         <Route path="exams" element={<StudentExamsPage />} />
+        <Route path="assistant" element={<StudentAssistantPage />} />
       </Route>
       <Route path="*" element={<Navigate to={defaultRoute} replace />} />
     </Routes>

@@ -8,6 +8,8 @@ import { TrainingPlanPanel } from "./panels/TrainingPlanPanel";
 import { GradePanel } from "./panels/GradePanel";
 import { ExamPanel } from "./panels/ExamPanel";
 import { AccessPanel } from "./panels/AccessPanel";
+import { AssistantPage } from "../AssistantPage";
+import { adminNav } from "../../constants/nav";
 
 export function AdminDashboard() {
   return (
@@ -71,4 +73,8 @@ export function AdminAccessPage() {
       <AccessPanel />
     </AppLayout>
   );
+}
+
+export function AdminAssistantPage() {
+  return <AssistantPage navItems={adminNav} title="AI 助手" subtitle="教务、教学、学员问答与分析" />;
 }

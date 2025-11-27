@@ -28,6 +28,11 @@ export interface UserDetail extends User {
   roles: Role[];
 }
 
+export interface AIResponse {
+  answer: string;
+  used_prompt: string;
+}
+
 export interface OrgUnit {
   id: number;
   name: string;

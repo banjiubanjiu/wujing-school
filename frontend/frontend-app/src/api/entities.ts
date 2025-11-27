@@ -304,3 +304,8 @@ export async function resetUserPassword(userId: number, password: string) {
   const res = await api.post(`/api/users/${userId}/reset-password`, { password });
   return res.data;
 }
+
+export async function askAssistant(payload: { prompt: string; task?: string; params?: Record<string, any> }) {
+  const res = await api.post("/api/ai/assistant", payload);
+  return res.data as { answer: string; used_prompt: string };
+}

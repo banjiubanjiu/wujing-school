@@ -9,6 +9,7 @@ export const adminNav: NavItem[] = [
   { key: "grades", label: "成绩审核", path: "/admin/grades" },
   { key: "exams", label: "考试", path: "/admin/exams" },
   { key: "access", label: "账号/权限", path: "/admin/access" },
+  { key: "assistant", label: "AI 助手", path: "/admin/assistant" },
 ];
 
 export const teacherNav: NavItem[] = [
@@ -16,6 +17,7 @@ export const teacherNav: NavItem[] = [
   { key: "schedule", label: "授课安排", path: "/teacher/schedule" },
   { key: "courses", label: "我的课程", path: "/teacher/courses" },
   { key: "grades", label: "成绩录入", path: "/teacher/grades" },
+  { key: "assistant", label: "AI 助手", path: "/teacher/assistant" },
 ];
 
 export const studentNav: NavItem[] = [
@@ -23,4 +25,5 @@ export const studentNav: NavItem[] = [
   { key: "schedule", label: "课表", path: "/student/schedule" },
   { key: "grades", label: "成绩", path: "/student/grades" },
   { key: "exams", label: "考试", path: "/student/exams" },
+  { key: "assistant", label: "AI 助手", path: "/student/assistant" },
 ];

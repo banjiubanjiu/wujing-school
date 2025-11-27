@@ -447,3 +447,14 @@ class ExamCreate(BaseModel):
     duration_minutes: Optional[int] = 90
     location: Optional[str] = None
     invigilators: Optional[str] = None
+
+
+class AIRequest(BaseModel):
+    prompt: str
+    task: Optional[str] = None  # e.g., risk_courses, weekly_report
+    params: dict = Field(default_factory=dict)
+
+
+class AIResponse(BaseModel):
+    answer: str
+    used_prompt: str

@@ -8,6 +8,7 @@ import { weekdayText } from "../../constants/dates";
 import { teacherNav } from "../../constants/nav";
 import { fetchCourses, fetchGrades, fetchHome, fetchMySchedule, fetchStudents, fetchTerms, submitGrade, upsertGrade } from "../../api/entities";
 import type { Course, Grade, ScheduleEntry, Student, Term } from "../../api/types";
+import { AssistantPage } from "../AssistantPage";
 
 const statusRenderer = (status?: string) => <StatusTag status={status} />;
 
@@ -289,4 +290,8 @@ export function TeacherGradesPage() {
       </Row>
     </AppLayout>
   );
+}
+
+export function TeacherAssistantPage() {
+  return <AssistantPage navItems={teacherNav} title="AI 助手" subtitle="课堂、成绩、考试等咨询" />;
 }
