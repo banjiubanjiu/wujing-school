@@ -865,6 +865,14 @@ export function SchedulePanel() {
             <Timetable
               schedule={filteredSchedule as ScheduleEntry[]}
               title="周视图"
+              onSlotClick={({ weekday, slot }) => {
+                setSelectedSchedule(null);
+                createForm.setFieldsValue({
+                  weekday,
+                  start_slot: slot,
+                  end_slot: slot,
+                });
+              }}
               onEntryClick={(entry) => {
                 setSelectedSchedule(entry);
                 createForm.setFieldsValue({

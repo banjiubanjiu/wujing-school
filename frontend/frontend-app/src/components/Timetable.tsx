@@ -6,12 +6,13 @@ interface TimetableProps {
   title?: string;
   maxSlot?: number;
   onEntryClick?: (entry: ScheduleEntry) => void;
+  onSlotClick?: (info: { weekday: number; slot: number }) => void;
 }
 
 const weekdays = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"];
 const palette = ["#e6f4ff", "#f9f0ff", "#f6ffed", "#fff7e6", "#e6fffb", "#fef6fb"];
 
-export function Timetable({ schedule, title = "课程表", maxSlot, onEntryClick }: TimetableProps) {
+export function Timetable({ schedule, title = "课程表", maxSlot, onEntryClick, onSlotClick }: TimetableProps) {
   const slots = maxSlot || Math.max(8, ...schedule.map((s) => s.end_slot || 0));
   const gridTemplateRows = `40px repeat(${slots}, 80px)`;
   const gridTemplateColumns = `60px repeat(7, 1fr)`;
@@ -60,6 +61,29 @@ export function Timetable({ schedule, title = "课程表", maxSlot, onEntryClick
             第{i + 1}节
           </div>
         ))}
+
+        {/* 空槽点击区域 */}
+        {Array.from({ length: slots }).map((_, slotIdx) =>
+          weekdays.map((_, dayIdx) => (
+            <div
+              key={`slot-${slotIdx + 1}-day-${dayIdx + 1}`}
+              style={{
+                gridRow: `${slotIdx + 2} / ${slotIdx + 3}`,
+                gridColumn: `${dayIdx + 2} / ${dayIdx + 3}`,
+                borderRadius: 8,
+                border: onSlotClick ? "1px dashed transparent" : "none",
+                cursor: onSlotClick ? "pointer" : "default",
+              }}
+              onClick={() => onSlotClick?.({ weekday: dayIdx + 1, slot: slotIdx + 1 })}
+              onMouseEnter={(e) => {
+                if (onSlotClick) (e.currentTarget.style.borderColor = "#c8d7f1");
+              }}
+              onMouseLeave={(e) => {
+                if (onSlotClick) (e.currentTarget.style.borderColor = "transparent");
+              }}
+            />
+          ))
+        )}
 
         {/* 课程块 */}
         {schedule.map((item, idx) => {
