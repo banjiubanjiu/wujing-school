@@ -749,10 +749,7 @@ export function SchedulePanel() {
     () => (teachers as Teacher[]).map((t) => ({ value: t.id, label: `${t.user.full_name} (${t.id})` })),
     [teachers]
   );
-  const scheduleRoomOptions = useMemo(
-    () => rooms.map((r) => ({ value: r.id, label: `${r.name} (${r.code})${r.building ? ` · ${r.building}` : ""}` })),
-    [rooms]
-  );
+  const scheduleRoomOptions = useMemo(() => rooms.map((r) => ({ value: r.id, label: `${r.name} (${r.code})` })), [rooms]);
   const scheduleTermOptions = useMemo(() => (terms as Term[]).map((t) => ({ value: t.id, label: t.name })), [terms]);
   const filterTermId = Form.useWatch("term_id", filterForm);
   const { data: schedule = [] } = useQuery({
@@ -953,7 +950,8 @@ export function SchedulePanel() {
                 placeholder="选择教室/场地"
                 onChange={(val, option) => {
                   if (val && typeof option === "object" && "label" in (option as any)) {
-                    createForm.setFieldValue("location", (option as any).label);
+                    const label = (option as any).label as string;
+                    createForm.setFieldValue("location", label);
                   }
                 }}
               />
