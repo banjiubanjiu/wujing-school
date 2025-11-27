@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Card, Col, Form, Input, InputNumber, Modal, Row, Select, Space, Table, message } from "antd";
 import { Timetable } from "../../../components/Timetable";
@@ -86,6 +86,23 @@ export function SchedulePanel() {
       }),
     [schedule, filterTermId]
   );
+  const fillFormFromSchedule = (entry: ScheduleEntry) => {
+    createForm.setFieldsValue({
+      course_id: entry.course_id || entry.course?.id,
+      class_id: entry.class_id || entry.class_info?.id,
+      teacher_id: entry.teacher_id,
+      room_id: entry.room_id || entry.room?.id,
+      weekday: entry.weekday,
+      start_slot: entry.start_slot,
+      end_slot: entry.end_slot,
+    });
+  };
+  useEffect(() => {
+    if (selectedSchedule) {
+      fillFormFromSchedule(selectedSchedule);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSchedule]);
   const isEditingSchedule = Boolean(selectedSchedule?.id);
   const handleScheduleSubmit = (vals: any) => {
     if (selectedSchedule?.id) {
@@ -157,7 +174,14 @@ export function SchedulePanel() {
               </Form>
             }
           >
-            <Timetable schedule={filteredSchedule as ScheduleEntry[]} title="周课程表" />
+            <Timetable
+              schedule={filteredSchedule as ScheduleEntry[]}
+              title="周课程表"
+              onEntryClick={(entry) => {
+                setSelectedSchedule(entry);
+                fillFormFromSchedule(entry);
+              }}
+            />
           </Card>
         </Col>
         <Col span={8}>
@@ -176,7 +200,14 @@ export function SchedulePanel() {
                 {
                   title: "操作",
                   render: (_: unknown, record: ScheduleEntry) => (
-                    <Button size="small" type="link" onClick={() => setSelectedSchedule(record)}>
+                    <Button
+                      size="small"
+                      type="link"
+                      onClick={() => {
+                        setSelectedSchedule(record);
+                        fillFormFromSchedule(record);
+                      }}
+                    >
                       编辑
                     </Button>
                   ),
