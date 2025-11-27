@@ -482,7 +482,7 @@
           <section id="student-block" class="panel hidden">
             <div class="panel-head">
               <span>学生视角</span>
-              <span class="muted">我的课表与成绩</span>
+              <span class="muted">我的课表、成绩、考试</span>
             </div>
             <div class="grid-2">
               <div>
@@ -494,12 +494,16 @@
                 <div id="student-grades" class="muted">加载中...</div>
               </div>
             </div>
+            <div style="margin-top:12px;">
+              <div class="section-note">我的考试</div>
+              <div id="student-exams" class="muted">加载中...</div>
+            </div>
           </section>
 
           <section id="teacher-block" class="panel hidden">
             <div class="panel-head">
               <span>教师视角</span>
-              <span class="muted">授课安排与课程</span>
+              <span class="muted">授课安排、课程、考试</span>
             </div>
             <div class="grid-2">
               <div>
@@ -510,6 +514,10 @@
                 <div class="section-note">课程列表（演示）</div>
                 <div id="teacher-grades" class="muted">加载中...</div>
               </div>
+            </div>
+            <div style="margin-top:12px;">
+              <div class="section-note">考试安排</div>
+              <div id="teacher-exams" class="muted">加载中...</div>
             </div>
           </section>
 
@@ -522,83 +530,249 @@
               <div>
                 <div class="section-note">学籍快览</div>
                 <div id="admin-students" class="muted">加载中...</div>
+                <div class="form-grid" style="margin-top:8px;">
+                  <input id="student-search" placeholder="学号/姓名模糊" />
+                  <input id="student-class-filter" placeholder="class_id" />
+                  <button class="btn-ghost" type="button" id="filter-students-btn">筛选学籍</button>
+                </div>
               </div>
               <div>
                 <div class="section-note">培养方案</div>
                 <div id="admin-plans" class="muted">加载中...</div>
               </div>
             </div>
-            <div style="margin-top: 16px;">
+
+            <div class="grid-2" style="margin-top: 12px;">
+              <div class="panel" style="box-shadow:none; border-style:dashed;">
+                <div class="panel-head"><span>学期列表</span></div>
+                <div id="admin-terms" class="muted">加载中...</div>
+              </div>
+              <div class="panel" style="box-shadow:none; border-style:dashed;">
+                <div class="panel-head"><span>学期管理</span></div>
+                <div class="form-grid">
+                  <input id="term-name" placeholder="名称 (唯一)" />
+                  <input id="term-start" placeholder="开始日期 YYYY-MM-DD" />
+                  <input id="term-end" placeholder="结束日期 YYYY-MM-DD" />
+                  <label class="muted" style="display:flex;gap:8px;align-items:center;">
+                    <input type="checkbox" id="term-current" /> 设为当前学期
+                  </label>
+                  <button class="btn-primary" type="button" id="create-term-btn">创建学期</button>
+                  <div id="create-term-status" class="muted"></div>
+                </div>
+                <div class="form-grid" style="margin-top:8px;">
+                  <input id="term-edit-id" placeholder="term_id" />
+                  <input id="term-edit-name" placeholder="新名称(可空)" />
+                  <input id="term-edit-start" placeholder="开始日期(可空)" />
+                  <input id="term-edit-end" placeholder="结束日期(可空)" />
+                  <label class="muted" style="display:flex;gap:8px;align-items:center;">
+                    <input type="checkbox" id="term-edit-current" /> 设为当前（不勾选不改）
+                  </label>
+                  <button class="btn-ghost" type="button" id="update-term-btn">更新学期</button>
+                  <div id="update-term-status" class="muted"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel" style="margin-top: 16px; box-shadow:none; border-style:dashed;">
+              <div class="panel-head"><span>学籍导入</span><span class="muted">JSON 列表</span></div>
+              <textarea id="import-students-input" placeholder='[{"username":"s100","password":"pass","full_name":"学生","student_no":"2024100","class_id":1}]'></textarea>
+              <div style="display:flex;gap:8px;align-items:center;margin-top:6px;">
+                <button class="btn-primary" id="import-students-btn">导入学籍</button>
+                <span id="import-students-status" class="muted"></span>
+              </div>
+            </div>
+
+            <div class="grid-2" style="margin-top: 12px;">
+              <div class="panel" style="box-shadow:none; border-style:dashed;">
+                <div class="panel-head"><span>班级管理</span></div>
+                <div class="section-note">班级列表</div>
+                <div id="admin-classes" class="muted">加载中...</div>
+                <div class="section-note" style="margin-top:8px;">新建班级</div>
+                <div class="form-grid">
+                  <input id="class-code" placeholder="班级编码" />
+                  <input id="class-name" placeholder="班级名称" />
+                  <input id="class-major" placeholder="major_id" />
+                  <input id="class-term" placeholder="term_id" />
+                  <input id="class-grade" placeholder="grade_year" />
+                  <button class="btn-ghost" type="button" id="create-class-btn">创建班级</button>
+                </div>
+                <div id="create-class-status" class="muted"></div>
+              </div>
+              <div class="panel" style="box-shadow:none; border-style:dashed;">
+                <div class="panel-head"><span>课程管理</span></div>
+                <div class="section-note">课程列表</div>
+                <div id="admin-courses" class="muted">加载中...</div>
+                <div class="section-note" style="margin-top:8px;">新建课程</div>
+                <div class="form-grid">
+                  <input id="course-code" placeholder="课程编码" />
+                  <input id="course-name" placeholder="课程名称" />
+                  <input id="course-major" placeholder="major_id" />
+                  <input id="course-term" placeholder="term_id" />
+                  <input id="course-teacher" placeholder="teacher_id" />
+                  <input id="course-class" placeholder="class_id (教学班)" />
+                  <input id="course-type" placeholder="类型(必修/选修...)" />
+                  <button class="btn-ghost" type="button" id="create-course-btn">创建课程</button>
+                </div>
+                <div id="create-course-status" class="muted"></div>
+              </div>
+            </div>
+
+            <div class="grid-2" style="margin-top: 12px;">
+              <div class="panel" style="box-shadow:none; border-style:dashed;">
+                <div class="panel-head"><span>培养方案</span></div>
+                <div class="form-field">
+                  <input id="plan-name" placeholder="方案名称" />
+                  <input id="plan-entry" placeholder="entry_year" />
+                  <input id="plan-major" placeholder="major_id" />
+                  <input id="plan-courses" placeholder="课程ID列表, 逗号分隔" />
+                  <button class="btn-ghost" type="button" id="create-plan-btn">创建方案</button>
+                </div>
+                <div id="create-plan-status" class="muted"></div>
+              </div>
+              <div class="panel" style="box-shadow:none; border-style:dashed;">
+                <div class="panel-head"><span>排课（冲突检测）</span></div>
+                <div class="form-grid">
+                  <div class="form-field">
+                    <label>基础信息</label>
+                    <input id="sched-course" placeholder="course_id" />
+                    <input id="sched-class" placeholder="class_id" />
+                    <input id="sched-teacher" placeholder="teacher_id" />
+                  </div>
+                  <div class="form-field">
+                    <label>时间地点</label>
+                    <input id="sched-weekday" placeholder="weekday (1-7)" />
+                    <input id="sched-start" placeholder="start_slot" />
+                    <input id="sched-end" placeholder="end_slot" />
+                    <input id="sched-location" placeholder="location" />
+                  </div>
+                </div>
+                <button class="btn-primary" type="button" id="create-schedule-btn" style="margin-top:8px;">提交排课</button>
+                <div id="create-schedule-status" class="muted"></div>
+                <div class="section-note" style="margin-top:8px;">课表查询</div>
+                <div class="form-grid">
+                  <input id="schedule-class-filter" placeholder="class_id" />
+                  <input id="schedule-teacher-filter" placeholder="teacher_id" />
+                  <button class="btn-ghost" type="button" id="load-schedule-btn">刷新课表</button>
+                </div>
+                <div id="admin-schedule" class="muted" style="margin-top:8px;">待查询</div>
+              </div>
+            </div>
+
+            <div class="panel" style="margin-top: 12px; box-shadow:none; border-style:dashed;">
               <div class="panel-head">
-                <span>教务操作</span>
-                <span class="muted">导入 / 新增 / 排课 / 方案</span>
+                <span>成绩审核</span>
+                <span class="muted">按课程/班级筛选，审核与发布</span>
+              </div>
+              <div class="form-grid">
+                <input id="grade-course-filter" placeholder="course_id" />
+                <input id="grade-class-filter" placeholder="class_id" />
+                <input id="grade-status-filter" placeholder="状态(draft/submitted/published)" />
+                <button class="btn-ghost" type="button" id="load-grades-btn">拉取成绩</button>
+              </div>
+              <div id="admin-grades" class="muted" style="margin-top:8px;">待查询</div>
+              <div class="form-grid" style="margin-top:8px;">
+                <input id="grade-review-id" placeholder="grade_id" />
+                <input id="grade-review-comment" placeholder="审核备注(可空)" />
+                <div style="display:flex;gap:8px;">
+                  <button class="btn-primary" type="button" id="approve-grade-btn">审核通过</button>
+                  <button class="btn-ghost" type="button" id="reject-grade-btn">驳回</button>
+                </div>
+                <div id="grade-review-status" class="muted"></div>
+              </div>
+              <div class="form-grid" style="margin-top:8px;">
+                <input id="grade-publish-course" placeholder="course_id" />
+                <input id="grade-publish-reviewer" placeholder="审核人(可空)" />
+                <button class="btn-ghost" type="button" id="publish-grades-btn">批量发布课程成绩</button>
+                <div id="grade-publish-status" class="muted"></div>
+              </div>
+              <div class="grid-2" style="margin-top:8px;">
+                <div class="panel" style="box-shadow:none; border-style:dashed;">
+                  <div class="section-note">成绩导入（JSON 列表）</div>
+                  <textarea id="import-grades-input" placeholder='[{"student_id":1,"course_id":1,"term_id":1,"usual_score":80,"final_score":85}]'></textarea>
+                  <button class="btn-primary" type="button" id="import-grades-btn" style="margin-top:6px;">导入成绩</button>
+                  <div id="import-grades-status" class="muted"></div>
+                </div>
+                <div class="panel" style="box-shadow:none; border-style:dashed;">
+                  <div class="section-note">成绩导出</div>
+                  <div class="form-grid">
+                    <input id="export-grade-course" placeholder="course_id 可空" />
+                    <input id="export-grade-class" placeholder="class_id 可空" />
+                    <button class="btn-ghost" type="button" id="export-grades-btn">导出成绩 (JSON)</button>
+                  </div>
+                  <div id="export-grades-status" class="muted"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel" style="margin-top: 12px; box-shadow:none; border-style:dashed;">
+              <div class="panel-head">
+                <span>考试安排</span>
+                <span class="muted">创建 / 查询</span>
               </div>
               <div class="grid-2">
-                <div class="panel" style="box-shadow:none; border-style:dashed;">
-                  <div class="section-note">学籍导入（JSON 列表）</div>
-                  <textarea id="import-students-input" placeholder='[{"username":"s100","password":"pass","full_name":"学生","student_no":"2024100","class_id":1}]'></textarea>
-                  <button class="btn-primary" id="import-students-btn" style="margin-top:8px;">导入学籍</button>
-                  <div id="import-students-status" class="muted"></div>
+                <div>
+                  <div class="section-note">考试列表</div>
+                  <div id="admin-exams" class="muted">加载中...</div>
                 </div>
-                <div class="panel" style="box-shadow:none; border-style:dashed;">
-                  <div class="section-note">新建班级 / 课程</div>
-                  <div class="form-grid">
-                    <div class="form-field">
-                      <label>班级</label>
-                      <input id="class-code" placeholder="班级编码" />
-                      <input id="class-name" placeholder="班级名称" />
-                      <input id="class-major" placeholder="major_id" />
-                      <input id="class-term" placeholder="term_id" />
-                      <input id="class-grade" placeholder="grade_year" />
-                      <button class="btn-ghost" type="button" id="create-class-btn">创建班级</button>
-                    </div>
-                    <div class="form-field">
-                      <label>课程</label>
-                      <input id="course-code" placeholder="课程编码" />
-                      <input id="course-name" placeholder="课程名称" />
-                      <input id="course-major" placeholder="major_id" />
-                      <input id="course-term" placeholder="term_id" />
-                      <input id="course-teacher" placeholder="teacher_id" />
-                      <input id="course-class" placeholder="class_id (教学班)" />
-                      <input id="course-type" placeholder="类型(必修/选修...)" />
-                      <button class="btn-ghost" type="button" id="create-course-btn">创建课程</button>
-                    </div>
-                  </div>
-                  <div id="create-class-status" class="muted"></div>
-                  <div id="create-course-status" class="muted"></div>
+                <div class="form-grid">
+                  <input id="exam-course" placeholder="course_id" />
+                  <input id="exam-class" placeholder="class_id 可空" />
+                  <input id="exam-term" placeholder="term_id 可空" />
+                  <input id="exam-type" placeholder="类型(期中/期末/补考…)" />
+                  <input id="exam-date" placeholder="考试日期 YYYY-MM-DD" />
+                  <input id="exam-start" placeholder="开始时间 HH:MM 可空" />
+                  <input id="exam-duration" placeholder="时长(分钟)" />
+                  <input id="exam-location" placeholder="地点" />
+                  <input id="exam-invigilators" placeholder="监考教师(文本)" />
+                  <button class="btn-primary" type="button" id="create-exam-btn">创建考试</button>
+                  <div id="create-exam-status" class="muted"></div>
                 </div>
               </div>
-              <div class="grid-2" style="margin-top: 12px;">
-                <div class="panel" style="box-shadow:none; border-style:dashed;">
-                  <div class="section-note">培养方案</div>
-                  <div class="form-field">
-                    <input id="plan-name" placeholder="方案名称" />
-                    <input id="plan-entry" placeholder="entry_year" />
-                    <input id="plan-major" placeholder="major_id" />
-                    <input id="plan-courses" placeholder="课程ID列表, 逗号分隔" />
-                    <button class="btn-ghost" type="button" id="create-plan-btn">创建方案</button>
-                  </div>
-                  <div id="create-plan-status" class="muted"></div>
+            </div>
+
+            <div class="panel" style="margin-top: 16px; box-shadow:none; border-style:dashed;">
+              <div class="panel-head">
+                <span>专业管理</span>
+                <span class="muted">增改 / 启停用 / 层级</span>
+              </div>
+              <div class="grid-2">
+                <div>
+                  <div class="section-note">专业列表</div>
+                  <div id="admin-majors" class="muted">加载中...</div>
                 </div>
-                <div class="panel" style="box-shadow:none; border-style:dashed;">
-                  <div class="section-note">排课（冲突检测）</div>
-                  <div class="form-grid">
-                    <div class="form-field">
-                      <label>基础信息</label>
-                      <input id="sched-course" placeholder="course_id" />
-                      <input id="sched-class" placeholder="class_id" />
-                      <input id="sched-teacher" placeholder="teacher_id" />
-                    </div>
-                    <div class="form-field">
-                      <label>时间地点</label>
-                      <input id="sched-weekday" placeholder="weekday (1-7)" />
-                      <input id="sched-start" placeholder="start_slot" />
-                      <input id="sched-end" placeholder="end_slot" />
-                      <input id="sched-location" placeholder="location" />
-                    </div>
+                <div class="form-grid">
+                  <div class="form-field">
+                    <label>新增专业</label>
+                    <input id="major-code" placeholder="编码 (唯一)" />
+                    <input id="major-name" placeholder="名称" />
+                    <input id="major-level" placeholder="层级(本科/专科/方向)" />
+                    <input id="major-degree" placeholder="学位/门类" />
+                    <input id="major-duration" placeholder="学制(年)" />
+                    <input id="major-org" placeholder="org_unit_id 可空" />
+                    <input id="major-parent" placeholder="parent_id 可空" />
+                    <input id="major-desc" placeholder="简介" />
+                    <label class="muted" style="display:flex;gap:8px;align-items:center;">
+                      <input type="checkbox" id="major-active" checked /> 启用
+                    </label>
+                    <button class="btn-primary" type="button" id="create-major-btn">创建专业</button>
+                    <div id="create-major-status" class="muted"></div>
                   </div>
-                  <button class="btn-primary" type="button" id="create-schedule-btn" style="margin-top:8px;">提交排课</button>
-                  <div id="create-schedule-status" class="muted"></div>
+                  <div class="form-field">
+                    <label>编辑/启停用</label>
+                    <input id="major-edit-id" placeholder="major_id" />
+                    <input id="major-edit-name" placeholder="新名称(可空)" />
+                    <input id="major-edit-level" placeholder="层级(可空)" />
+                    <input id="major-edit-degree" placeholder="学位(可空)" />
+                    <input id="major-edit-duration" placeholder="学制(年,可空)" />
+                    <input id="major-edit-org" placeholder="org_unit_id 可空" />
+                    <input id="major-edit-parent" placeholder="parent_id 可空" />
+                    <input id="major-edit-desc" placeholder="简介(可空)" />
+                    <label class="muted" style="display:flex;gap:8px;align-items:center;">
+                      <input type="checkbox" id="major-edit-active" /> 启用（不勾选则停用，默认不改）
+                    </label>
+                    <button class="btn-ghost" type="button" id="update-major-btn">更新专业</button>
+                    <div id="update-major-status" class="muted"></div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -611,6 +785,9 @@
       const apiBase = "http://localhost:8000";
       let token = null;
       let currentRoles = [];
+      const PAGE_SIZE = 8;
+      const adminStore = { students: [], classes: [], courses: [], majors: [], grades: [], terms: [] };
+      const adminPage = { students: 1, classes: 1, courses: 1, majors: 1, grades: 1, terms: 1 };
 
       const loginForm = document.getElementById("login-form");
       const loginStatus = document.getElementById("login-status");
@@ -653,6 +830,34 @@
             </div>`
           )
           .join("");
+      }
+
+      function renderPager(container, key, totalPages) {
+        if (totalPages <= 1) return;
+        const page = adminPage[key] || 1;
+        const pager = document.createElement("div");
+        pager.className = "muted";
+        pager.style.marginTop = "6px";
+        pager.innerHTML = `
+          <button class="btn-ghost" data-pager="${key}" data-dir="prev" ${page <= 1 ? "disabled" : ""}>上一页</button>
+          <span style="margin:0 8px;">${page} / ${totalPages}</span>
+          <button class="btn-ghost" data-pager="${key}" data-dir="next" ${page >= totalPages ? "disabled" : ""}>下一页</button>
+        `;
+        pager.querySelectorAll("[data-pager]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const dir = btn.getAttribute("data-dir");
+            adminPage[key] = dir === "next" ? page + 1 : page - 1;
+            const map = {
+              students: renderStudentsPage,
+              classes: renderClassesPage,
+              courses: renderCoursesPage,
+              majors: renderMajorsPage,
+              grades: renderAdminGradesPage,
+            };
+            map[key]?.();
+          });
+        });
+        container.appendChild(pager);
       }
 
       function renderSchedule(list, mountId) {
@@ -706,6 +911,32 @@
         </table>`;
       }
 
+      function renderExams(list, mountId) {
+        const el = document.getElementById(mountId);
+        if (!list || list.length === 0) {
+          el.textContent = "暂无考试";
+          return;
+        }
+        el.innerHTML = `<table>
+          <thead><tr><th>课程</th><th>班级</th><th>类型</th><th>日期</th><th>时间</th><th>时长</th><th>地点</th></tr></thead>
+          <tbody>
+            ${list
+              .map(
+                (x) => `<tr>
+                <td>${x.course?.name || x.course_id}</td>
+                <td>${x.class_info?.name || x.class_id || "-"}</td>
+                <td>${x.exam_type || "-"}</td>
+                <td>${x.exam_date || "-"}</td>
+                <td>${x.start_time || "-"}</td>
+                <td>${x.duration_minutes ?? "-"}</td>
+                <td>${x.location || "-"}</td>
+              </tr>`
+              )
+              .join("")}
+          </tbody>
+        </table>`;
+      }
+
       function renderMenus(menus) {
         const quick = document.getElementById("menu-quick");
         const sidebar = document.getElementById("sidebar-menu");
@@ -740,15 +971,25 @@
       }
 
       function renderStudents(list) {
+        adminStore.students = list || [];
+        renderStudentsPage();
+      }
+
+      function renderStudentsPage() {
         const el = document.getElementById("admin-students");
-        if (!list || list.length === 0) {
+        const list = adminStore.students || [];
+        if (!list.length) {
           el.textContent = "暂无学籍数据";
           return;
         }
+        const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+        const page = Math.min(Math.max(1, adminPage.students || 1), totalPages);
+        adminPage.students = page;
+        const pageList = list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
         el.innerHTML = `<table>
           <thead><tr><th>学号</th><th>姓名</th><th>班级</th><th>状态</th></tr></thead>
           <tbody>
-            ${list
+            ${pageList
               .map(
                 (s) => `<tr>
                 <td>${s.student_no}</td>
@@ -760,6 +1001,146 @@
               .join("")}
           </tbody>
         </table>`;
+        renderPager(el, "students", totalPages);
+      }
+
+      function renderClasses(list) {
+        adminStore.classes = list || [];
+        renderClassesPage();
+      }
+
+      function renderClassesPage() {
+        const el = document.getElementById("admin-classes");
+        const list = adminStore.classes || [];
+        if (!list.length) {
+          el.textContent = "暂无班级";
+          return;
+        }
+        const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+        const page = Math.min(Math.max(1, adminPage.classes || 1), totalPages);
+        adminPage.classes = page;
+        const pageList = list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+        el.innerHTML = `<table>
+          <thead><tr><th>ID</th><th>编码</th><th>名称</th><th>专业</th><th>学期</th><th>年级</th></tr></thead>
+          <tbody>
+            ${pageList
+              .map(
+                (c) => `<tr>
+                <td>${c.id}</td>
+                <td>${c.code}</td>
+                <td>${c.name}</td>
+                <td>${c.major_id ?? "-"}</td>
+                <td>${c.term_id ?? "-"}</td>
+                <td>${c.grade_year ?? "-"}</td>
+              </tr>`
+              )
+              .join("")}
+          </tbody>
+        </table>`;
+        renderPager(el, "classes", totalPages);
+      }
+
+      function renderCourses(list) {
+        adminStore.courses = list || [];
+        renderCoursesPage();
+      }
+
+      function renderCoursesPage() {
+        const el = document.getElementById("admin-courses");
+        const list = adminStore.courses || [];
+        if (!list.length) {
+          el.textContent = "暂无课程";
+          return;
+        }
+        const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+        const page = Math.min(Math.max(1, adminPage.courses || 1), totalPages);
+        adminPage.courses = page;
+        const pageList = list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+        el.innerHTML = `<table>
+          <thead><tr><th>ID</th><th>编码</th><th>名称</th><th>专业</th><th>学期</th><th>教师</th><th>班级</th><th>类型</th></tr></thead>
+          <tbody>
+            ${pageList
+              .map(
+                (c) => `<tr>
+                <td>${c.id}</td>
+                <td>${c.code}</td>
+                <td>${c.name}</td>
+                <td>${c.major_id ?? "-"}</td>
+                <td>${c.term_id ?? "-"}</td>
+                <td>${c.teacher_id ?? "-"}</td>
+                <td>${c.class_id ?? "-"}</td>
+                <td>${c.course_type ?? "-"}</td>
+              </tr>`
+              )
+              .join("")}
+          </tbody>
+        </table>`;
+        renderPager(el, "courses", totalPages);
+      }
+
+      function renderAdminSchedule(list) {
+        const el = document.getElementById("admin-schedule");
+        if (!list || list.length === 0) {
+          el.textContent = "暂无排课";
+          return;
+        }
+        const weekdays = ["一", "二", "三", "四", "五", "六", "日"];
+        el.innerHTML = `<table>
+          <thead><tr><th>ID</th><th>周</th><th>节次</th><th>课程</th><th>班级</th><th>教师</th><th>地点</th></tr></thead>
+          <tbody>
+            ${list
+              .map(
+                (s) => `<tr>
+                <td>${s.id}</td>
+                <td>周${weekdays[s.weekday - 1] || s.weekday}</td>
+                <td>${s.start_slot}-${s.end_slot}</td>
+                <td>${s.course?.name || s.course_id}</td>
+                <td>${s.class_info?.name || s.class_id || "-"}</td>
+                <td>${s.teacher_id || "-"}</td>
+                <td>${s.location || "-"}</td>
+              </tr>`
+              )
+              .join("")}
+          </tbody>
+        </table>`;
+      }
+
+      function renderAdminGrades(list) {
+        adminStore.grades = list || [];
+        renderAdminGradesPage();
+      }
+
+      function renderAdminGradesPage() {
+        const el = document.getElementById("admin-grades");
+        const list = adminStore.grades || [];
+        if (!list.length) {
+          el.textContent = "暂无成绩";
+          return;
+        }
+        const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+        const page = Math.min(Math.max(1, adminPage.grades || 1), totalPages);
+        adminPage.grades = page;
+        const pageList = list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+        el.innerHTML = `<table>
+          <thead><tr><th>ID</th><th>课程</th><th>学生</th><th>班级</th><th>平时</th><th>期末</th><th>总评</th><th>状态</th></tr></thead>
+          <tbody>
+            ${pageList
+              .map(
+                (g) => `<tr>
+                <td>${g.id}</td>
+                <td>${g.course?.name || g.course_id}</td>
+                <td>${g.student?.user?.full_name || g.student_id}</td>
+                <td>${g.student?.class_info?.name || g.student?.class_id || "-"}</td>
+                <td>${g.usual_score ?? "-"}</td>
+                <td>${g.final_score ?? "-"}</td>
+                <td>${g.total_score ?? "-"}</td>
+                <td><span class="tag ${g.status === "published" ? "tag-green" : "tag-amber"}">${g.status}</span></td>
+              </tr>`
+              )
+              .join("")}
+          </tbody>
+        </table>`;
+        renderPager(el, "grades", totalPages);
       }
 
       function renderPlans(list) {
@@ -782,6 +1163,78 @@
             </div>`;
           })
           .join("");
+      }
+
+      function renderMajors(list) {
+        adminStore.majors = list || [];
+        renderMajorsPage();
+      }
+
+      function renderTerms(list) {
+        adminStore.terms = list || [];
+        renderTermsPage();
+      }
+
+      function renderMajorsPage() {
+        const el = document.getElementById("admin-majors");
+        const list = adminStore.majors || [];
+        if (!list.length) {
+          el.textContent = "暂无专业";
+          return;
+        }
+        const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+        const page = Math.min(Math.max(1, adminPage.majors || 1), totalPages);
+        adminPage.majors = page;
+        const pageList = list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+        el.innerHTML = `<table>
+          <thead><tr><th>ID</th><th>编码</th><th>名称</th><th>层级/学位</th><th>学制</th><th>上级</th><th>状态</th></tr></thead>
+          <tbody>
+            ${pageList
+              .map(
+                (m) => `<tr>
+                <td>${m.id}</td>
+                <td>${m.code}</td>
+                <td>${m.name}</td>
+                <td>${[m.level, m.degree].filter(Boolean).join(" / ") || "-"}</td>
+                <td>${m.duration_years ?? "-"}</td>
+                <td>${m.parent_id ?? "-"}</td>
+                <td><span class="tag ${m.active ? "tag-green" : "tag-amber"}">${m.active ? "启用" : "停用"}</span></td>
+              </tr>`
+              )
+              .join("")}
+          </tbody>
+        </table>`;
+        renderPager(el, "majors", totalPages);
+      }
+
+      function renderTermsPage() {
+        const el = document.getElementById("admin-terms");
+        const list = adminStore.terms || [];
+        if (!list.length) {
+          el.textContent = "暂无学期";
+          return;
+        }
+        const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+        const page = Math.min(Math.max(1, adminPage.terms || 1), totalPages);
+        adminPage.terms = page;
+        const pageList = list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+        el.innerHTML = `<table>
+          <thead><tr><th>ID</th><th>名称</th><th>开始</th><th>结束</th><th>当前</th></tr></thead>
+          <tbody>
+            ${pageList
+              .map(
+                (t) => `<tr>
+                <td>${t.id}</td>
+                <td>${t.name}</td>
+                <td>${t.start_date || "-"}</td>
+                <td>${t.end_date || "-"}</td>
+                <td><span class="tag ${t.is_current ? "tag-green" : "tag-amber"}">${t.is_current ? "是" : "否"}</span></td>
+              </tr>`
+              )
+              .join("")}
+          </tbody>
+        </table>`;
+        renderPager(el, "terms", totalPages);
       }
 
       function updateVisibleBlocks() {
@@ -810,19 +1263,24 @@
 
       async function loadStudentData() {
         if (!currentRoles.includes("STUDENT")) return;
-        const [schedule, grades] = await Promise.all([
+        const [schedule, grades, exams] = await Promise.all([
           authFetch("/api/schedule/my"),
           authFetch("/api/grades/my"),
+          authFetch("/api/exams/my"),
         ]);
         renderSchedule(schedule, "student-schedule");
         renderGrades(grades, "student-grades");
+        renderExams(exams, "student-exams");
       }
 
       async function loadTeacherData() {
         if (!currentRoles.includes("TEACHER")) return;
-        const schedule = await authFetch("/api/schedule/my");
+        const [schedule, exams, courses] = await Promise.all([
+          authFetch("/api/schedule/my"),
+          authFetch("/api/exams/my"),
+          authFetch("/api/courses?mine=true"),
+        ]);
         renderSchedule(schedule, "teacher-schedule");
-        const courses = await authFetch("/api/courses?mine=true");
         const rows = courses
           .map(
             (c) =>
@@ -833,16 +1291,109 @@
           <thead><tr><th>课程</th><th>班级ID</th><th>学期ID</th><th>学时</th></tr></thead>
           <tbody>${rows}</tbody>
         </table>`;
+        renderExams(exams, "teacher-exams");
+      }
+
+      async function loadScheduleAdmin() {
+        if (!currentRoles.includes("ADMIN")) return;
+        const classId = document.getElementById("schedule-class-filter").value;
+        const teacherId = document.getElementById("schedule-teacher-filter").value;
+        const qs = [];
+        if (classId) qs.push(`class_id=${classId}`);
+        if (teacherId) qs.push(`teacher_id=${teacherId}`);
+        const list = await authFetch(`/api/schedule${qs.length ? "?" + qs.join("&") : ""}`);
+        renderAdminSchedule(list);
+      }
+
+      async function loadGradesAdmin() {
+        if (!currentRoles.includes("ADMIN")) return;
+        const courseId = document.getElementById("grade-course-filter").value;
+        const classId = document.getElementById("grade-class-filter").value;
+        const status = document.getElementById("grade-status-filter").value;
+        const qs = [];
+        if (courseId) qs.push(`course_id=${courseId}`);
+        if (classId) qs.push(`class_id=${classId}`);
+        if (status) qs.push(`status_filter=${status}`);
+        const list = await authFetch(`/api/grades${qs.length ? "?" + qs.join("&") : ""}`);
+        renderAdminGrades(list);
+      }
+
+      async function handleReviewGrade(approve) {
+        const id = Number(document.getElementById("grade-review-id").value);
+        const comment = document.getElementById("grade-review-comment").value.trim() || undefined;
+        const statusEl = document.getElementById("grade-review-status");
+        if (!id) {
+          statusEl.textContent = "请输入 grade_id";
+          statusEl.style.color = "#c36a00";
+          return;
+        }
+        try {
+          const res = await authFetch("/api/grades/review", {
+            method: "POST",
+            body: JSON.stringify({ grade_id: id, approve, comment }),
+          });
+          statusEl.textContent = `已更新状态：${res.status}`;
+          statusEl.style.color = "var(--muted)";
+          loadGradesAdmin();
+          loadStudentData();
+        } catch (err) {
+          statusEl.textContent = err.message;
+          statusEl.style.color = "#c36a00";
+        }
+      }
+
+      async function handlePublishGrades() {
+        const courseId = Number(document.getElementById("grade-publish-course").value);
+        const reviewer = document.getElementById("grade-publish-reviewer").value.trim() || undefined;
+        const statusEl = document.getElementById("grade-publish-status");
+        if (!courseId) {
+          statusEl.textContent = "请输入 course_id";
+          statusEl.style.color = "#c36a00";
+          return;
+        }
+        try {
+          const res = await authFetch("/api/grades/publish", {
+            method: "POST",
+            body: JSON.stringify({ course_id: courseId, reviewer }),
+          });
+          statusEl.textContent = `发布成功，数量：${res.published}`;
+          statusEl.style.color = "var(--muted)";
+          loadGradesAdmin();
+          loadStudentData();
+        } catch (err) {
+          statusEl.textContent = err.message;
+          statusEl.style.color = "#c36a00";
+        }
+      }
+
+      async function handleFilterStudents() {
+        const q = document.getElementById("student-search").value.trim();
+        const classId = document.getElementById("student-class-filter").value;
+        const qs = [];
+        if (q) qs.push(`q=${encodeURIComponent(q)}`);
+        if (classId) qs.push(`class_id=${classId}`);
+        const list = await authFetch(`/api/students${qs.length ? "?" + qs.join("&") : ""}`);
+        renderStudents(list);
       }
 
       async function loadAdminData() {
         if (!currentRoles.includes("ADMIN")) return;
-        const [students, plans] = await Promise.all([
+        const [students, plans, majors, classes, courses, exams, terms] = await Promise.all([
           authFetch("/api/students"),
           authFetch("/api/training-plans"),
+          authFetch("/api/majors"),
+          authFetch("/api/classes"),
+          authFetch("/api/courses"),
+          authFetch("/api/exams"),
+          authFetch("/api/terms"),
         ]);
         renderStudents(students);
         renderPlans(plans);
+        renderMajors(majors);
+        renderClasses(classes);
+        renderCourses(courses);
+        renderExams(exams, "admin-exams");
+        renderTerms(terms);
       }
 
       loginForm.addEventListener("submit", async (e) => {
@@ -1038,12 +1589,277 @@
         }
       }
 
+      async function handleImportGrades() {
+        const statusEl = document.getElementById("import-grades-status");
+        let data;
+        try {
+          data = JSON.parse(document.getElementById("import-grades-input").value || "[]");
+        } catch (e) {
+          statusEl.textContent = "JSON 格式错误";
+          statusEl.style.color = "#c36a00";
+          return;
+        }
+        try {
+          const res = await authFetch("/api/grades/import", {
+            method: "POST",
+            body: JSON.stringify({ grades: data }),
+          });
+          statusEl.textContent = `导入完成：新增 ${res.inserted}，更新 ${res.updated}`;
+          statusEl.style.color = "var(--muted)";
+          loadGradesAdmin();
+          loadStudentData();
+        } catch (err) {
+          statusEl.textContent = err.message;
+          statusEl.style.color = "#c36a00";
+        }
+      }
+
+      async function handleCreateTerm() {
+        const statusEl = document.getElementById("create-term-status");
+        const payload = {
+          name: document.getElementById("term-name").value.trim(),
+          start_date: document.getElementById("term-start").value || undefined,
+          end_date: document.getElementById("term-end").value || undefined,
+          is_current: document.getElementById("term-current").checked,
+        };
+        if (!payload.name) {
+          statusEl.textContent = "名称必填";
+          statusEl.style.color = "#c36a00";
+          return;
+        }
+        try {
+          const res = await authFetch("/api/terms", {
+            method: "POST",
+            body: JSON.stringify(payload),
+          });
+          statusEl.textContent = `创建成功：${res.name}`;
+          statusEl.style.color = "var(--muted)";
+          loadAdminData();
+        } catch (err) {
+          statusEl.textContent = err.message;
+          statusEl.style.color = "#c36a00";
+        }
+      }
+
+      async function handleUpdateTerm() {
+        const statusEl = document.getElementById("update-term-status");
+        const id = Number(document.getElementById("term-edit-id").value);
+        if (!id) {
+          statusEl.textContent = "请填写 term_id";
+          statusEl.style.color = "#c36a00";
+          return;
+        }
+        const payload = {
+          name: document.getElementById("term-edit-name").value.trim() || undefined,
+          start_date: document.getElementById("term-edit-start").value || undefined,
+          end_date: document.getElementById("term-edit-end").value || undefined,
+        };
+        const editCurrent = document.getElementById("term-edit-current");
+        if (!editCurrent.indeterminate) {
+          payload.is_current = editCurrent.checked;
+        }
+        const cleanPayload = Object.fromEntries(
+          Object.entries(payload).filter(([, v]) => v !== undefined && v !== "")
+        );
+        if (Object.keys(cleanPayload).length === 0) {
+          statusEl.textContent = "请至少填写一个字段";
+          statusEl.style.color = "#c36a00";
+          return;
+        }
+        try {
+          const res = await authFetch(`/api/terms/${id}`, {
+            method: "PUT",
+            body: JSON.stringify(cleanPayload),
+          });
+          statusEl.textContent = `更新成功：${res.name}`;
+          statusEl.style.color = "var(--muted)";
+          loadAdminData();
+        } catch (err) {
+          statusEl.textContent = err.message;
+          statusEl.style.color = "#c36a00";
+        }
+      }
+
+      async function handleExportGrades() {
+        const statusEl = document.getElementById("export-grades-status");
+        const courseId = document.getElementById("export-grade-course").value;
+        const classId = document.getElementById("export-grade-class").value;
+        const qs = [];
+        if (courseId) qs.push(`course_id=${courseId}`);
+        if (classId) qs.push(`class_id=${classId}`);
+        try {
+          const list = await authFetch(`/api/grades/export${qs.length ? "?" + qs.join("&") : ""}`);
+          statusEl.textContent = `导出 ${list.length} 条（控制台查看 JSON）`;
+          statusEl.style.color = "var(--muted)";
+          console.log("导出成绩", list);
+        } catch (err) {
+          statusEl.textContent = err.message;
+          statusEl.style.color = "#c36a00";
+        }
+      }
+
+      async function handleCreateExam() {
+        const statusEl = document.getElementById("create-exam-status");
+        const payload = {
+          course_id: Number(document.getElementById("exam-course").value),
+          class_id: document.getElementById("exam-class").value
+            ? Number(document.getElementById("exam-class").value)
+            : undefined,
+          term_id: document.getElementById("exam-term").value
+            ? Number(document.getElementById("exam-term").value)
+            : undefined,
+          exam_type: document.getElementById("exam-type").value || undefined,
+          exam_date: document.getElementById("exam-date").value || undefined,
+          start_time: document.getElementById("exam-start").value || undefined,
+          duration_minutes: document.getElementById("exam-duration").value
+            ? Number(document.getElementById("exam-duration").value)
+            : undefined,
+          location: document.getElementById("exam-location").value || undefined,
+          invigilators: document.getElementById("exam-invigilators").value || undefined,
+        };
+        if (!payload.course_id) {
+          statusEl.textContent = "请填写 course_id";
+          statusEl.style.color = "#c36a00";
+          return;
+        }
+        try {
+          const res = await authFetch("/api/exams", {
+            method: "POST",
+            body: JSON.stringify(payload),
+          });
+          statusEl.textContent = `创建成功：${res.exam_type || ""} ${res.id}`;
+          statusEl.style.color = "var(--muted)";
+          loadAdminData();
+          loadStudentData();
+          loadTeacherData();
+        } catch (err) {
+          statusEl.textContent = err.message;
+          statusEl.style.color = "#c36a00";
+        }
+      }
+
+      async function handleCreateMajor() {
+        const statusEl = document.getElementById("create-major-status");
+        const payload = {
+          code: document.getElementById("major-code").value.trim(),
+          name: document.getElementById("major-name").value.trim(),
+          level: document.getElementById("major-level").value.trim() || undefined,
+          degree: document.getElementById("major-degree").value.trim() || undefined,
+          duration_years: document.getElementById("major-duration").value
+            ? Number(document.getElementById("major-duration").value)
+            : undefined,
+          org_unit_id: document.getElementById("major-org").value
+            ? Number(document.getElementById("major-org").value)
+            : undefined,
+          parent_id: document.getElementById("major-parent").value
+            ? Number(document.getElementById("major-parent").value)
+            : undefined,
+          description: document.getElementById("major-desc").value.trim() || undefined,
+          active: document.getElementById("major-active").checked,
+        };
+        if (!payload.code || !payload.name) {
+          statusEl.textContent = "编码/名称必填";
+          statusEl.style.color = "#c36a00";
+          return;
+        }
+        try {
+          const res = await authFetch("/api/majors", {
+            method: "POST",
+            body: JSON.stringify(payload),
+          });
+          statusEl.textContent = `创建成功：${res.name}`;
+          statusEl.style.color = "var(--muted)";
+          loadAdminData();
+        } catch (err) {
+          statusEl.textContent = err.message;
+          statusEl.style.color = "#c36a00";
+        }
+      }
+
+      async function handleUpdateMajor() {
+        const statusEl = document.getElementById("update-major-status");
+        const id = Number(document.getElementById("major-edit-id").value);
+        if (!id) {
+          statusEl.textContent = "请填写 major_id";
+          statusEl.style.color = "#c36a00";
+          return;
+        }
+        const activeEl = document.getElementById("major-edit-active");
+        const payload = {
+          name: document.getElementById("major-edit-name").value.trim() || undefined,
+          level: document.getElementById("major-edit-level").value.trim() || undefined,
+          degree: document.getElementById("major-edit-degree").value.trim() || undefined,
+          duration_years: document.getElementById("major-edit-duration").value
+            ? Number(document.getElementById("major-edit-duration").value)
+            : undefined,
+          org_unit_id: document.getElementById("major-edit-org").value
+            ? Number(document.getElementById("major-edit-org").value)
+            : undefined,
+          parent_id: document.getElementById("major-edit-parent").value
+            ? Number(document.getElementById("major-edit-parent").value)
+            : undefined,
+          description: document.getElementById("major-edit-desc").value.trim() || undefined,
+        };
+        if (!activeEl.indeterminate) {
+          payload.active = activeEl.checked;
+        }
+        const cleanPayload = Object.fromEntries(
+          Object.entries(payload).filter(([, v]) => v !== undefined && v !== "")
+        );
+        if (Object.keys(cleanPayload).length === 0) {
+          statusEl.textContent = "请至少填写一个字段";
+          statusEl.style.color = "#c36a00";
+          return;
+        }
+        try {
+          const res = await authFetch(`/api/majors/${id}`, {
+            method: "PUT",
+            body: JSON.stringify(cleanPayload),
+          });
+          statusEl.textContent = `更新成功：${res.name}`;
+          statusEl.style.color = "var(--muted)";
+          loadAdminData();
+        } catch (err) {
+          statusEl.textContent = err.message;
+          statusEl.style.color = "#c36a00";
+        }
+      }
+
       // 绑定按钮事件
       document.getElementById("create-class-btn").addEventListener("click", handleCreateClass);
       document.getElementById("create-course-btn").addEventListener("click", handleCreateCourse);
       document.getElementById("create-plan-btn").addEventListener("click", handleCreatePlan);
       document.getElementById("create-schedule-btn").addEventListener("click", handleScheduleCreate);
       document.getElementById("import-students-btn").addEventListener("click", handleImportStudents);
+      document.getElementById("create-major-btn").addEventListener("click", handleCreateMajor);
+      document.getElementById("update-major-btn").addEventListener("click", handleUpdateMajor);
+      document.getElementById("filter-students-btn").addEventListener("click", handleFilterStudents);
+      document.getElementById("load-schedule-btn").addEventListener("click", loadScheduleAdmin);
+      document.getElementById("load-grades-btn").addEventListener("click", loadGradesAdmin);
+      document.getElementById("approve-grade-btn").addEventListener("click", () => handleReviewGrade(true));
+      document.getElementById("reject-grade-btn").addEventListener("click", () => handleReviewGrade(false));
+      document.getElementById("publish-grades-btn").addEventListener("click", handlePublishGrades);
+      document.getElementById("import-grades-btn").addEventListener("click", handleImportGrades);
+      document.getElementById("export-grades-btn").addEventListener("click", handleExportGrades);
+      document.getElementById("create-exam-btn").addEventListener("click", handleCreateExam);
+      document.getElementById("create-term-btn").addEventListener("click", handleCreateTerm);
+      document.getElementById("update-term-btn").addEventListener("click", handleUpdateTerm);
+
+      // 默认编辑“启用”复选框为不改状态（半选）
+      const majorEditActive = document.getElementById("major-edit-active");
+      if (majorEditActive) {
+        majorEditActive.indeterminate = true;
+        majorEditActive.addEventListener("change", () => {
+          majorEditActive.indeterminate = false;
+        });
+      }
     </script>
   </body>
 </html>
+      const termEditCurrent = document.getElementById("term-edit-current");
+      if (termEditCurrent) {
+        termEditCurrent.indeterminate = true;
+        termEditCurrent.addEventListener("change", () => {
+          termEditCurrent.indeterminate = false;
+        });
+      }

@@ -3,6 +3,7 @@ from sqlalchemy import (
     Column,
     Date,
     DateTime,
+    Time,
     DECIMAL,
     ForeignKey,
     Integer,
@@ -105,9 +106,16 @@ class Major(Base):
     code = Column(String(50), nullable=False, unique=True)
     name = Column(String(100), nullable=False, unique=True)
     org_unit_id = Column(Integer, ForeignKey("org_units.id"))
+    parent_id = Column(Integer, ForeignKey("majors.id"))
+    level = Column(String(50))  # 本科/专科/方向等
+    degree = Column(String(50))  # 学位类型或门类
+    duration_years = Column(Integer)  # 学制（年）
+    active = Column(Boolean, nullable=False, server_default=text("1"))
+    description = Column(String(255))
     created_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
 
     org_unit = relationship("OrgUnit", back_populates="majors")
+    parent = relationship("Major", remote_side=[id], backref="children")
     classes = relationship("Class", back_populates="major")
     teachers = relationship("Teacher", back_populates="major")
     courses = relationship("Course", back_populates="major")
@@ -289,3 +297,23 @@ class GradeAudit(Base):
     created_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
 
     grade = relationship("Grade", backref="audits")
+
+
+class Exam(Base):
+    __tablename__ = "exams"
+
+    id = Column(Integer, primary_key=True, index=True)
+    course_id = Column(Integer, ForeignKey("courses.id"), nullable=False)
+    class_id = Column(Integer, ForeignKey("classes.id"))
+    term_id = Column(Integer, ForeignKey("terms.id"))
+    exam_type = Column(String(50), default="期末")
+    exam_date = Column(Date)
+    start_time = Column(Time)
+    duration_minutes = Column(Integer, default=90)
+    location = Column(String(100))
+    invigilators = Column(String(200))
+    created_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
+
+    course = relationship("Course", backref="exams")
+    term = relationship("Term", backref="exams")
+    class_info = relationship("Class", backref="exams")

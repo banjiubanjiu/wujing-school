@@ -39,7 +39,16 @@ def init_db_with_sample_data():
         )
         db.add_all([term1, term2])
 
-        major = models.Major(code="LAW", name="刑法学", org_unit=battalion)
+        major = models.Major(
+            code="LAW",
+            name="刑法学",
+            org_unit=battalion,
+            level="本科",
+            degree="法学",
+            duration_years=4,
+            active=True,
+            description="公安院校法学专业培养计划",
+        )
 
         class_a = models.Class(
             code="2024A",
@@ -193,6 +202,31 @@ def init_db_with_sample_data():
             status="draft",
         )
         db.add_all([grade1, grade2])
+
+        # Exams
+        exam1 = models.Exam(
+            course=course1,
+            class_info=class_a,
+            term=term1,
+            exam_type="期末",
+            exam_date=date(2025, 1, 5),
+            start_time=None,
+            duration_minutes=120,
+            location="综合楼201",
+            invigilators="张老师",
+        )
+        exam2 = models.Exam(
+            course=course2,
+            class_info=class_b,
+            term=term1,
+            exam_type="期中",
+            exam_date=date(2024, 11, 30),
+            start_time=None,
+            duration_minutes=90,
+            location="操场B",
+            invigilators="李老师",
+        )
+        db.add_all([exam1, exam2])
 
         db.commit()
     finally:

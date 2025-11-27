@@ -1,3 +1,4 @@
+from datetime import date
 from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -34,9 +35,23 @@ class OrgUnitUpdate(BaseModel):
 class TermOut(ORMModel):
     id: int
     name: str
-    start_date: Optional[str] = None
-    end_date: Optional[str] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
     is_current: bool
+
+
+class TermCreate(BaseModel):
+    name: str
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    is_current: bool = False
+
+
+class TermUpdate(BaseModel):
+    name: Optional[str] = None
+    start_date: Optional[date] = None
+    end_date: Optional[date] = None
+    is_current: Optional[bool] = None
 
 
 class MajorOut(ORMModel):
@@ -44,6 +59,35 @@ class MajorOut(ORMModel):
     code: str
     name: str
     org_unit_id: Optional[int] = None
+    parent_id: Optional[int] = None
+    level: Optional[str] = None
+    degree: Optional[str] = None
+    duration_years: Optional[int] = None
+    active: bool = True
+    description: Optional[str] = None
+
+
+class MajorCreate(BaseModel):
+    code: str
+    name: str
+    org_unit_id: Optional[int] = None
+    parent_id: Optional[int] = None
+    level: Optional[str] = None
+    degree: Optional[str] = None
+    duration_years: Optional[int] = None
+    active: bool = True
+    description: Optional[str] = None
+
+
+class MajorUpdate(BaseModel):
+    name: Optional[str] = None
+    org_unit_id: Optional[int] = None
+    parent_id: Optional[int] = None
+    level: Optional[str] = None
+    degree: Optional[str] = None
+    duration_years: Optional[int] = None
+    active: Optional[bool] = None
+    description: Optional[str] = None
 
 
 class ClassOut(ORMModel):
@@ -113,6 +157,13 @@ class StudentOut(ORMModel):
     user: UserOut
     class_info: Optional[ClassOut] = None
     status_logs: List[StudentStatusLogOut] = Field(default_factory=list)
+
+
+class TeacherOut(ORMModel):
+    id: int
+    user: UserOut
+    major_id: Optional[int] = None
+    title: Optional[str] = None
 
 class StudentCreate(BaseModel):
     username: str
@@ -228,6 +279,20 @@ class GradeOut(ORMModel):
     reviewer: Optional[str] = None
     course: Optional[CourseOut] = None
     term: Optional[TermOut] = None
+    student: Optional["StudentOut"] = None
+
+
+class GradeImportItem(BaseModel):
+    student_id: int
+    course_id: int
+    term_id: int
+    usual_score: float
+    final_score: float
+    status: Optional[str] = "draft"
+
+
+class GradeImport(BaseModel):
+    grades: List[GradeImportItem]
 
 
 class GradeCreate(BaseModel):
@@ -273,3 +338,31 @@ class MenuItem(BaseModel):
 class MenuResponse(BaseModel):
     roles: List[str]
     menus: List[MenuItem]
+
+
+class ExamOut(ORMModel):
+    id: int
+    course_id: int
+    class_id: Optional[int] = None
+    term_id: Optional[int] = None
+    exam_type: Optional[str] = None
+    exam_date: Optional[str] = None
+    start_time: Optional[str] = None
+    duration_minutes: Optional[int] = None
+    location: Optional[str] = None
+    invigilators: Optional[str] = None
+    course: Optional[CourseOut] = None
+    class_info: Optional[ClassOut] = None
+    term: Optional[TermOut] = None
+
+
+class ExamCreate(BaseModel):
+    course_id: int
+    class_id: Optional[int] = None
+    term_id: Optional[int] = None
+    exam_type: Optional[str] = "期末"
+    exam_date: Optional[str] = None
+    start_time: Optional[str] = None
+    duration_minutes: Optional[int] = 90
+    location: Optional[str] = None
+    invigilators: Optional[str] = None

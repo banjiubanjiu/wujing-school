@@ -12,24 +12,25 @@ router = APIRouter(prefix="/api", tags=["api"])
 
 ROLE_MENUS = {
     "STUDENT": [
-        {"key": "home", "label": "总览", "path": "/student/home", "icon": "dashboard"},
+        {"key": "home", "label": "总览", "path": "/student/dashboard", "icon": "dashboard"},
         {"key": "schedule", "label": "我的课表", "path": "/student/schedule"},
         {"key": "grades", "label": "我的成绩", "path": "/student/grades"},
-        {"key": "training", "label": "培养方案", "path": "/student/training"},
+        {"key": "exams", "label": "考试安排", "path": "/student/exams"},
     ],
     "TEACHER": [
-        {"key": "home", "label": "课堂工作台", "path": "/teacher/home", "icon": "calendar"},
+        {"key": "home", "label": "课堂工作台", "path": "/teacher/dashboard", "icon": "calendar"},
         {"key": "teaching-schedule", "label": "授课安排", "path": "/teacher/schedule"},
-        {"key": "roster", "label": "花名册", "path": "/teacher/classes"},
+        {"key": "courses", "label": "我的课程", "path": "/teacher/courses"},
         {"key": "grade-entry", "label": "成绩录入", "path": "/teacher/grades"},
     ],
     "ADMIN": [
-        {"key": "home", "label": "教务驾驶舱", "path": "/admin/home", "icon": "layout"},
+        {"key": "home", "label": "教务驾驶舱", "path": "/admin/dashboard", "icon": "layout"},
         {"key": "students", "label": "学籍", "path": "/admin/students"},
         {"key": "courses", "label": "课程与教学班", "path": "/admin/courses"},
         {"key": "plans", "label": "培养方案", "path": "/admin/plans"},
         {"key": "schedule", "label": "排课与课表", "path": "/admin/schedule"},
         {"key": "grades", "label": "成绩审核", "path": "/admin/grades"},
+        {"key": "exams", "label": "考试", "path": "/admin/exams"},
     ],
 }
 
@@ -287,10 +288,87 @@ def update_class(
 
 @router.get("/majors", response_model=List[schemas.MajorOut])
 def list_majors(
+    active: Optional[bool] = None,
+    level: Optional[str] = None,
+    degree: Optional[str] = None,
+    parent_id: Optional[int] = None,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    return db.query(models.Major).all()
+    query = db.query(models.Major)
+    if active is not None:
+        query = query.filter(models.Major.active == active)
+    if level:
+        query = query.filter(models.Major.level == level)
+    if degree:
+        query = query.filter(models.Major.degree == degree)
+    if parent_id is not None:
+        query = query.filter(models.Major.parent_id == parent_id)
+    return query.all()
+
+
+@router.post("/majors", response_model=schemas.MajorOut, status_code=status.HTTP_201_CREATED)
+def create_major(
+    payload: schemas.MajorCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_roles(["ADMIN"])),
+):
+    if db.query(models.Major).filter(models.Major.code == payload.code).first():
+        raise HTTPException(status_code=400, detail="Major code already exists")
+    if db.query(models.Major).filter(models.Major.name == payload.name).first():
+        raise HTTPException(status_code=400, detail="Major name already exists")
+    if payload.org_unit_id:
+        org = db.get(models.OrgUnit, payload.org_unit_id)
+        if not org:
+            raise HTTPException(status_code=404, detail="Org unit not found")
+    if payload.parent_id:
+        parent = db.get(models.Major, payload.parent_id)
+        if not parent:
+            raise HTTPException(status_code=404, detail="Parent major not found")
+    major = models.Major(**payload.dict())
+    db.add(major)
+    db.commit()
+    db.refresh(major)
+    return major
+
+
+@router.put("/majors/{major_id}", response_model=schemas.MajorOut)
+def update_major(
+    major_id: int,
+    payload: schemas.MajorUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_roles(["ADMIN"])),
+):
+    major = db.get(models.Major, major_id)
+    if not major:
+        raise HTTPException(status_code=404, detail="Major not found")
+    data = payload.dict(exclude_unset=True)
+    if "code" in data:
+        raise HTTPException(status_code=400, detail="Code cannot be changed")
+    if "name" in data and data["name"]:
+        exists = (
+            db.query(models.Major)
+            .filter(models.Major.name == data["name"], models.Major.id != major_id)
+            .first()
+        )
+        if exists:
+            raise HTTPException(status_code=400, detail="Major name already exists")
+    if "org_unit_id" in data and data["org_unit_id"]:
+        org = db.get(models.OrgUnit, data["org_unit_id"])
+        if not org:
+            raise HTTPException(status_code=404, detail="Org unit not found")
+    if "parent_id" in data:
+        if data["parent_id"] == major_id:
+            raise HTTPException(status_code=400, detail="Parent cannot be self")
+        if data["parent_id"]:
+            parent = db.get(models.Major, data["parent_id"])
+            if not parent:
+                raise HTTPException(status_code=404, detail="Parent major not found")
+    for field, value in data.items():
+        setattr(major, field, value)
+    db.commit()
+    db.refresh(major)
+    return major
 
 
 @router.get("/orgs", response_model=List[schemas.OrgUnitOut])
@@ -339,6 +417,51 @@ def list_terms(
     return db.query(models.Term).order_by(models.Term.start_date).all()
 
 
+@router.post("/terms", response_model=schemas.TermOut, status_code=status.HTTP_201_CREATED)
+def create_term(
+    payload: schemas.TermCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_roles(["ADMIN"])),
+):
+    if db.query(models.Term).filter(models.Term.name == payload.name).first():
+        raise HTTPException(status_code=400, detail="Term name already exists")
+    term = models.Term(**payload.dict())
+    if term.is_current:
+        db.query(models.Term).update({models.Term.is_current: False})
+    db.add(term)
+    db.commit()
+    db.refresh(term)
+    return term
+
+
+@router.put("/terms/{term_id}", response_model=schemas.TermOut)
+def update_term(
+    term_id: int,
+    payload: schemas.TermUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_roles(["ADMIN"])),
+):
+    term = db.get(models.Term, term_id)
+    if not term:
+        raise HTTPException(status_code=404, detail="Term not found")
+    data = payload.dict(exclude_unset=True)
+    if "name" in data and data["name"]:
+        exists = (
+            db.query(models.Term)
+            .filter(models.Term.name == data["name"], models.Term.id != term_id)
+            .first()
+        )
+        if exists:
+            raise HTTPException(status_code=400, detail="Term name already exists")
+    for k, v in data.items():
+        setattr(term, k, v)
+    if data.get("is_current"):
+        db.query(models.Term).filter(models.Term.id != term_id).update({models.Term.is_current: False})
+    db.commit()
+    db.refresh(term)
+    return term
+
+
 @router.get("/courses", response_model=List[schemas.CourseOut])
 def list_courses(
     term_id: Optional[int] = None,
@@ -354,6 +477,18 @@ def list_courses(
         teacher = db.query(models.Teacher).filter(models.Teacher.user_id == current_user.id).first()
         if teacher:
             query = query.filter(models.Course.teacher_id == teacher.id)
+    return query.all()
+
+
+@router.get("/teachers", response_model=List[schemas.TeacherOut])
+def list_teachers(
+    major_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    query = db.query(models.Teacher).options(selectinload(models.Teacher.user))
+    if major_id:
+        query = query.filter(models.Teacher.major_id == major_id)
     return query.all()
 
 
@@ -706,3 +841,141 @@ def publish_grades(
         g.reviewer = payload.reviewer or current_user.full_name
     db.commit()
     return {"published": len(grades)}
+
+
+@router.get("/grades", response_model=List[schemas.GradeOut])
+def list_grades(
+    course_id: Optional[int] = None,
+    class_id: Optional[int] = None,
+    status_filter: Optional[str] = Query(None, description="draft/submitted/published/rejected"),
+    mine: Optional[bool] = False,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_roles(["ADMIN", "TEACHER"])),
+):
+    query = db.query(models.Grade).options(
+        selectinload(models.Grade.course),
+        selectinload(models.Grade.term),
+        selectinload(models.Grade.student).selectinload(models.Student.user),
+        selectinload(models.Grade.student).selectinload(models.Student.class_info),
+    )
+    role_codes = get_role_codes(current_user)
+    if "TEACHER" in role_codes and "ADMIN" not in role_codes:
+        mine = True
+    if mine and "TEACHER" in role_codes:
+        teacher = db.query(models.Teacher).filter(models.Teacher.user_id == current_user.id).first()
+        if not teacher:
+            return []
+        query = query.join(models.Course, models.Course.id == models.Grade.course_id).filter(
+            models.Course.teacher_id == teacher.id
+        )
+    if course_id:
+        query = query.filter(models.Grade.course_id == course_id)
+    if class_id:
+        query = query.join(models.Student).filter(models.Student.class_id == class_id)
+    if status_filter:
+        query = query.filter(models.Grade.status == status_filter)
+    return query.all()
+
+
+@router.post("/grades/import")
+def import_grades(
+    payload: schemas.GradeImport,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_roles(["ADMIN", "TEACHER"])),
+):
+    inserted = 0
+    updated = 0
+    for item in payload.grades:
+        grade = (
+            db.query(models.Grade)
+            .filter(models.Grade.student_id == item.student_id, models.Grade.course_id == item.course_id)
+            .first()
+        )
+        if not grade:
+            grade = models.Grade(
+                student_id=item.student_id,
+                course_id=item.course_id,
+                term_id=item.term_id,
+            )
+            db.add(grade)
+            inserted += 1
+        else:
+            updated += 1
+        grade.usual_score = item.usual_score
+        grade.final_score = item.final_score
+        grade.total_score = round(item.usual_score * 0.4 + item.final_score * 0.6, 2)
+        grade.status = item.status or "draft"
+    db.commit()
+    return {"inserted": inserted, "updated": updated}
+
+
+@router.get("/grades/export", response_model=List[schemas.GradeOut])
+def export_grades(
+    course_id: Optional[int] = None,
+    class_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_roles(["ADMIN", "TEACHER"])),
+):
+    return list_grades(
+        course_id=course_id,
+        class_id=class_id,
+        status_filter=None,
+        mine=False,
+        db=db,
+        current_user=current_user,
+    )
+
+
+@router.get("/exams", response_model=List[schemas.ExamOut])
+def list_exams(
+    course_id: Optional[int] = None,
+    class_id: Optional[int] = None,
+    term_id: Optional[int] = None,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    query = db.query(models.Exam).options(
+        selectinload(models.Exam.course),
+        selectinload(models.Exam.class_info),
+        selectinload(models.Exam.term),
+    )
+    role_codes = get_role_codes(current_user)
+    if "TEACHER" in role_codes and "ADMIN" not in role_codes:
+        teacher = db.query(models.Teacher).filter(models.Teacher.user_id == current_user.id).first()
+        if teacher:
+            query = query.join(models.Course).filter(models.Course.teacher_id == teacher.id)
+    if "STUDENT" in role_codes and current_user.student:
+        query = query.filter(models.Exam.class_id == current_user.student.class_id)
+    if course_id:
+        query = query.filter(models.Exam.course_id == course_id)
+    if class_id:
+        query = query.filter(models.Exam.class_id == class_id)
+    if term_id:
+        query = query.filter(models.Exam.term_id == term_id)
+    return query.all()
+
+
+@router.get("/exams/my", response_model=List[schemas.ExamOut])
+def my_exams(
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    return list_exams(db=db, current_user=current_user)
+
+
+@router.post("/exams", response_model=schemas.ExamOut)
+def create_exam(
+    payload: schemas.ExamCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_roles(["ADMIN"])),
+):
+    course = db.get(models.Course, payload.course_id)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+    exam = models.Exam(**payload.dict())
+    if not exam.term_id:
+        exam.term_id = course.term_id
+    db.add(exam)
+    db.commit()
+    db.refresh(exam)
+    return exam
