@@ -6,6 +6,7 @@ import {
   Form,
   Input,
   InputNumber,
+  Modal,
   Row,
   Select,
   Space,
@@ -24,6 +25,7 @@ import {
   createCourse,
   createExam,
   createMajor,
+  createRoom,
   createScheduleEntry,
   createTerm,
   createTrainingPlan,
@@ -52,6 +54,7 @@ import type {
   Exam,
   Grade,
   Major,
+  Room,
   ScheduleEntry,
   Student,
   Term,
@@ -60,6 +63,23 @@ import type {
 } from "../../api/types";
 
 const PAGE_SIZE = 8;
+
+const roomOrLocationRule = (form: any, message: string) => ({
+  validator() {
+    const roomId = form.getFieldValue("room_id");
+    const location = form.getFieldValue("location");
+    if (roomId || location) return Promise.resolve();
+    return Promise.reject(new Error(message));
+  },
+});
+
+const formatRoomLabel = (room?: Room | null) => {
+  if (!room) return "-";
+  const main = room.name || room.code;
+  const codePart = room.name && room.code && room.name !== room.code ? ` (${room.code})` : "";
+  const buildingPart = room.building ? ` - ${room.building}` : "";
+  return `${main}${codePart}${buildingPart}`;
+};
 
 export default function AdminPage() {
   return (
@@ -712,7 +732,9 @@ export function GradePanel() {
 export function SchedulePanel() {
   const [filterForm] = Form.useForm();
   const [createForm] = Form.useForm();
+  const [roomForm] = Form.useForm();
   const [selectedSchedule, setSelectedSchedule] = useState<ScheduleEntry | null>(null);
+  const [roomModalOpen, setRoomModalOpen] = useState(false);
   const queryClient = useQueryClient();
   const { data: classes = [] } = useQuery({ queryKey: ["classes"], queryFn: () => fetchClasses() });
   const { data: courses = [] } = useQuery({ queryKey: ["courses"], queryFn: () => fetchCourses() });
@@ -749,7 +771,10 @@ export function SchedulePanel() {
     () => (teachers as Teacher[]).map((t) => ({ value: t.id, label: `${t.user.full_name} (${t.id})` })),
     [teachers]
   );
-  const scheduleRoomOptions = useMemo(() => rooms.map((r) => ({ value: r.id, label: `${r.name} (${r.code})` })), [rooms]);
+  const scheduleRoomOptions = useMemo(
+    () => rooms.map((r) => ({ value: r.id, label: formatRoomLabel(r) })),
+    [rooms]
+  );
   const scheduleTermOptions = useMemo(() => (terms as Term[]).map((t) => ({ value: t.id, label: t.name })), [terms]);
   const filterTermId = Form.useWatch("term_id", filterForm);
   const { data: schedule = [] } = useQuery({
@@ -787,6 +812,17 @@ export function SchedulePanel() {
     },
     onError: (err: any) => message.error(err.message || "创建失败"),
   });
+  const createRoomMut = useMutation({
+    mutationFn: createRoom,
+    onSuccess: (room: Room) => {
+      message.success("场地已创建");
+      roomForm.resetFields();
+      setRoomModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      createForm.setFieldValue("room_id", room.id);
+    },
+    onError: (err: any) => message.error(err.message || "创建场地失败"),
+  });
   const updateScheduleMut = useMutation({
     mutationFn: (payload: { id: number; data: any }) => updateScheduleEntry(payload.id, payload.data),
     onSuccess: () => {
@@ -821,177 +857,218 @@ export function SchedulePanel() {
     {
       title: "地点",
       dataIndex: "room_id",
-      render: (_: unknown, r: ScheduleEntry) => r.room?.name || r.location || "-",
+      render: (_: unknown, r: ScheduleEntry) => (r.room ? formatRoomLabel(r.room) : r.location || "-"),
     },
   ];
 
   return (
-    <Row gutter={16}>
-      <Col span={14}>
-        <Card
-          title="课表"
-          extra={
-            <Form form={filterForm} layout="inline">
-              <Form.Item name="class_id">
-                <Select
-                  showSearch
-                  optionFilterProp="label"
-                  placeholder="班级"
-                  allowClear
-                  style={{ minWidth: 160 }}
-                  options={scheduleFilterClassOptions}
-                />
-              </Form.Item>
-              <Form.Item name="teacher_id">
-                <Select
-                  showSearch
-                  optionFilterProp="label"
-                  allowClear
-                  placeholder="教师"
-                  style={{ minWidth: 160 }}
-                  options={scheduleTeacherOptions}
-                />
-              </Form.Item>
-              <Form.Item name="term_id">
-                <Select
-                  showSearch
-                  optionFilterProp="label"
-                  allowClear
-                  placeholder="学期"
-                  style={{ minWidth: 160 }}
-                  options={scheduleTermOptions}
-                />
-              </Form.Item>
-              <Form.Item>
-                <Button onClick={() => queryClient.invalidateQueries({ queryKey: ["schedule"] })}>筛选</Button>
-              </Form.Item>
-            </Form>
-          }
-        >
-          <div style={{ marginBottom: 12 }}>
-            <Timetable
-              schedule={filteredSchedule as ScheduleEntry[]}
-              title="周视图"
-              onSlotClick={({ weekday, slot }) => {
-                setSelectedSchedule(null);
-                createForm.setFieldsValue({
-                  weekday,
-                  start_slot: slot,
-                  end_slot: slot,
-                });
-              }}
-              onEntryClick={(entry) => {
-                setSelectedSchedule(entry);
-                createForm.setFieldsValue({
-                  course_id: entry.course_id,
-                  class_id: entry.class_id,
-                  teacher_id: entry.teacher_id,
-                  room_id: entry.room_id,
-                  weekday: entry.weekday,
-                  start_slot: entry.start_slot,
-                  end_slot: entry.end_slot,
-                  location: entry.location,
-                });
-              }}
-            />
-            {selectedSchedule && (
-              <div style={{ marginTop: 8, color: "#666", fontSize: 12 }}>
-                已选：{selectedSchedule.course?.name || selectedSchedule.course_id} · 周{selectedSchedule.weekday} ·{" "}
-                {selectedSchedule.start_slot}-{selectedSchedule.end_slot}（自动填充到右侧表单，可调整后保存为新排课）
-              </div>
-            )}
-          </div>
-          <Table<ScheduleEntry>
-            rowKey="id"
-            dataSource={filteredSchedule}
-            columns={columns}
-            pagination={{ pageSize: PAGE_SIZE }}
-            onRow={(record) => ({
-              onClick: () => {
-                setSelectedSchedule(record);
-                createForm.setFieldsValue({
-                  course_id: record.course_id,
-                  class_id: record.class_id,
-                  teacher_id: record.teacher_id,
-                  room_id: record.room_id,
-                  weekday: record.weekday,
-                  start_slot: record.start_slot,
-                  end_slot: record.end_slot,
-                  location: record.location,
-                });
-              },
-            })}
-          />
-        </Card>
-      </Col>
-      <Col span={10}>
-        <Card title="创建/编辑排课">
-          <Form layout="vertical" form={createForm} onFinish={handleScheduleSubmit}>
-            <Form.Item name="course_id" label="课程" rules={[{ required: true }]}>
-              <Select showSearch optionFilterProp="label" options={scheduleCourseOptions} />
-            </Form.Item>
-            <Form.Item name="class_id" label="班级">
-              <Select showSearch optionFilterProp="label" allowClear options={scheduleClassOptions} />
-            </Form.Item>
-            <Form.Item name="teacher_id" label="教师">
-              <Select
-                showSearch
-                optionFilterProp="label"
-                allowClear
-                options={scheduleTeacherOptions}
-              />
-            </Form.Item>
-            <Form.Item name="room_id" label="地点(房间)">
-              <Select
-                showSearch
-                optionFilterProp="label"
-                allowClear
-                options={scheduleRoomOptions}
-                placeholder="选择教室/场地"
-                onChange={(val, option) => {
-                  if (val && typeof option === "object" && "label" in (option as any)) {
-                    const label = (option as any).label as string;
-                    createForm.setFieldValue("location", label);
-                  }
+    <>
+      <Row gutter={16}>
+        <Col span={14}>
+          <Card
+            title="课表"
+            extra={
+              <Form form={filterForm} layout="inline">
+                <Form.Item name="class_id">
+                  <Select
+                    showSearch
+                    optionFilterProp="label"
+                    placeholder="班级"
+                    allowClear
+                    style={{ minWidth: 160 }}
+                    options={scheduleFilterClassOptions}
+                  />
+                </Form.Item>
+                <Form.Item name="teacher_id">
+                  <Select
+                    showSearch
+                    optionFilterProp="label"
+                    allowClear
+                    placeholder="教师"
+                    style={{ minWidth: 160 }}
+                    options={scheduleTeacherOptions}
+                  />
+                </Form.Item>
+                <Form.Item name="term_id">
+                  <Select
+                    showSearch
+                    optionFilterProp="label"
+                    allowClear
+                    placeholder="学期"
+                    style={{ minWidth: 160 }}
+                    options={scheduleTermOptions}
+                  />
+                </Form.Item>
+                <Form.Item>
+                  <Button onClick={() => queryClient.invalidateQueries({ queryKey: ["schedule"] })}>筛选</Button>
+                </Form.Item>
+              </Form>
+            }
+          >
+            <div style={{ marginBottom: 12 }}>
+              <Timetable
+                schedule={filteredSchedule as ScheduleEntry[]}
+                title="周视图"
+                onSlotClick={({ weekday, slot }) => {
+                  setSelectedSchedule(null);
+                  createForm.setFieldsValue({
+                    weekday,
+                    start_slot: slot,
+                    end_slot: slot,
+                  });
+                }}
+                onEntryClick={(entry) => {
+                  setSelectedSchedule(entry);
+                  createForm.setFieldsValue({
+                    course_id: entry.course_id,
+                    class_id: entry.class_id,
+                    teacher_id: entry.teacher_id,
+                    room_id: entry.room_id,
+                    weekday: entry.weekday,
+                    start_slot: entry.start_slot,
+                    end_slot: entry.end_slot,
+                    location: entry.location,
+                  });
                 }}
               />
-            </Form.Item>
-            <Form.Item name="weekday" label="星期" rules={[{ required: true }]}>
-              <InputNumber style={{ width: "100%" }} min={1} max={7} />
-            </Form.Item>
-            <Form.Item name="start_slot" label="开始节次" rules={[{ required: true }]}>
-              <InputNumber style={{ width: "100%" }} min={1} max={12} />
-            </Form.Item>
-            <Form.Item name="end_slot" label="结束节次" rules={[{ required: true }]}>
-              <InputNumber style={{ width: "100%" }} min={1} max={12} />
-            </Form.Item>
-            <Form.Item name="location" label="自定义地点(无房间时)">
-              <Input placeholder="可选，未选房间时填写" />
-            </Form.Item>
-            <Form.Item>
-              <Space>
-                <Button type="primary" htmlType="submit" loading={isEditingSchedule ? updateScheduleMut.isPending : createMut.isPending}>
-                  {isEditingSchedule ? "更新排课" : "创建排课"}
-                </Button>
-                {isEditingSchedule && (
-                  <Button danger loading={deleteScheduleMut.isPending} onClick={() => selectedSchedule && deleteScheduleMut.mutate(selectedSchedule.id!)}>
-                    删除排课
+              {selectedSchedule && (
+                <div style={{ marginTop: 8, color: "#666", fontSize: 12 }}>
+                  已选：{selectedSchedule.course?.name || selectedSchedule.course_id} · 周{selectedSchedule.weekday} ·{" "}
+                  {selectedSchedule.start_slot}-{selectedSchedule.end_slot}（自动填充到右侧表单，可调整后保存为新排课）
+                </div>
+              )}
+            </div>
+            <Table<ScheduleEntry>
+              rowKey="id"
+              dataSource={filteredSchedule}
+              columns={columns}
+              pagination={{ pageSize: PAGE_SIZE }}
+              onRow={(record) => ({
+                onClick: () => {
+                  setSelectedSchedule(record);
+                  createForm.setFieldsValue({
+                    course_id: record.course_id,
+                    class_id: record.class_id,
+                    teacher_id: record.teacher_id,
+                    room_id: record.room_id,
+                    weekday: record.weekday,
+                    start_slot: record.start_slot,
+                    end_slot: record.end_slot,
+                    location: record.location,
+                  });
+                },
+              })}
+            />
+          </Card>
+        </Col>
+        <Col span={10}>
+          <Card title="创建/编辑排课">
+            <Form layout="vertical" form={createForm} onFinish={handleScheduleSubmit}>
+              <Form.Item name="course_id" label="课程" rules={[{ required: true }]}>
+                <Select showSearch optionFilterProp="label" options={scheduleCourseOptions} />
+              </Form.Item>
+              <Form.Item name="class_id" label="班级">
+                <Select showSearch optionFilterProp="label" allowClear options={scheduleClassOptions} />
+              </Form.Item>
+              <Form.Item name="teacher_id" label="教师">
+                <Select showSearch optionFilterProp="label" allowClear options={scheduleTeacherOptions} />
+              </Form.Item>
+              <Form.Item
+                name="room_id"
+                label="地点(房间)"
+                rules={[roomOrLocationRule(createForm, "请选择地点或填写自定义地点")]}
+              >
+                <Space.Compact style={{ width: "100%" }}>
+                  <Select
+                    style={{ flex: 1 }}
+                    showSearch
+                    optionFilterProp="label"
+                    allowClear
+                    options={scheduleRoomOptions}
+                    placeholder="选择教室/场地"
+                  />
+                  <Button onClick={() => setRoomModalOpen(true)}>+ 新建场地</Button>
+                </Space.Compact>
+              </Form.Item>
+              <Form.Item name="weekday" label="星期" rules={[{ required: true }]}>
+                <InputNumber style={{ width: "100%" }} min={1} max={7} />
+              </Form.Item>
+              <Form.Item name="start_slot" label="开始节次" rules={[{ required: true }]}>
+                <InputNumber style={{ width: "100%" }} min={1} max={12} />
+              </Form.Item>
+              <Form.Item name="end_slot" label="结束节次" rules={[{ required: true }]}>
+                <InputNumber style={{ width: "100%" }} min={1} max={12} />
+              </Form.Item>
+              <Form.Item
+                name="location"
+                label="自定义地点"
+                rules={[roomOrLocationRule(createForm, "请选择地点或填写自定义地点")]}
+              >
+                <Input placeholder="未在列表中的场地，如外训基地、借用场地" />
+              </Form.Item>
+              <Form.Item>
+                <Space>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    loading={isEditingSchedule ? updateScheduleMut.isPending : createMut.isPending}
+                  >
+                    {isEditingSchedule ? "更新排课" : "创建排课"}
                   </Button>
-                )}
-                <Button
-                  onClick={() => {
-                    setSelectedSchedule(null);
-                    createForm.resetFields();
-                  }}
-                >
-                  清空
-                </Button>
-              </Space>
-            </Form.Item>
-          </Form>
-        </Card>
-      </Col>
-    </Row>
+                  {isEditingSchedule && (
+                    <Button
+                      danger
+                      loading={deleteScheduleMut.isPending}
+                      onClick={() => selectedSchedule && deleteScheduleMut.mutate(selectedSchedule.id!)}
+                    >
+                      删除排课
+                    </Button>
+                  )}
+                  <Button
+                    onClick={() => {
+                      setSelectedSchedule(null);
+                      createForm.resetFields();
+                    }}
+                  >
+                    清空
+                  </Button>
+                </Space>
+              </Form.Item>
+            </Form>
+          </Card>
+        </Col>
+      </Row>
+
+      <Modal
+        title="新建场地"
+        open={roomModalOpen}
+        onCancel={() => setRoomModalOpen(false)}
+        onOk={() => roomForm.submit()}
+        confirmLoading={createRoomMut.isPending}
+        destroyOnClose
+      >
+        <Form layout="vertical" form={roomForm} onFinish={(vals) => createRoomMut.mutate(vals)} preserve={false}>
+          <Form.Item name="code" label="场地代码" rules={[{ required: true, message: "请输入代码" }]}>
+            <Input placeholder="唯一代码，如 MAIN-201" />
+          </Form.Item>
+          <Form.Item name="name" label="名称" rules={[{ required: true, message: "请输入名称" }]}>
+            <Input placeholder="如 综合楼201" />
+          </Form.Item>
+          <Form.Item name="building" label="楼栋/区域">
+            <Input placeholder="如 教学主楼" />
+          </Form.Item>
+          <Form.Item name="room_type" label="类型">
+            <Input placeholder="教室/实验室/场地" />
+          </Form.Item>
+          <Form.Item name="capacity" label="容量">
+            <InputNumber style={{ width: "100%" }} min={0} />
+          </Form.Item>
+          <Form.Item name="features" label="特色">
+            <Input placeholder="可选，如 多媒体/可分组" />
+          </Form.Item>
+        </Form>
+      </Modal>
+    </>
   );
 }
 
@@ -1120,7 +1197,7 @@ export function ExamPanel() {
     { title: "日期", dataIndex: "exam_date" },
     { title: "时间", dataIndex: "start_time" },
     { title: "时长", dataIndex: "duration_minutes" },
-    { title: "地点", render: (_: unknown, r: Exam) => r.room?.name || r.location || "-" },
+    { title: "地点", render: (_: unknown, r: Exam) => (r.room ? formatRoomLabel(r.room) : r.location || "-") },
     { title: "监考", dataIndex: "invigilators" },
   ];
 
@@ -1147,12 +1224,12 @@ export function ExamPanel() {
             <Form.Item name="term_id" label="学期">
               <Select showSearch optionFilterProp="label" allowClear options={examTermOptions} />
             </Form.Item>
-            <Form.Item name="room_id" label="地点">
+            <Form.Item name="room_id" label="地点" rules={[{ required: true, message: "请选择地点" }]}>
               <Select
                 showSearch
                 optionFilterProp="label"
                 allowClear
-                options={rooms.map((r) => ({ value: r.id, label: `${r.name} (${r.code})${r.building ? ` · ${r.building}` : ""}` }))}
+                options={(rooms as Room[]).map((r) => ({ value: r.id, label: formatRoomLabel(r) }))}
               />
             </Form.Item>
             <Form.Item name="exam_type" label="类型">
@@ -1166,9 +1243,6 @@ export function ExamPanel() {
             </Form.Item>
             <Form.Item name="duration_minutes" label="时长(分钟)">
               <InputNumber style={{ width: "100%" }} />
-            </Form.Item>
-            <Form.Item name="location" label="地点">
-              <Input />
             </Form.Item>
             <Form.Item name="invigilators" label="监考">
               <Input />

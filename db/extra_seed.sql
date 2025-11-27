@@ -23,6 +23,25 @@ INSERT OR IGNORE INTO terms (name, start_date, end_date, is_current) VALUES
   ('2025-2026-2', '2026-03-01', '2026-07-10', 0),
   ('2023-2024-2', '2024-03-01', '2024-07-10', 0);
 
+-- 教室/场地
+DELETE FROM rooms;
+INSERT INTO rooms (code, name, building, room_type, capacity, active) VALUES
+  ('MAIN-201', '综合楼201', '教学主楼', '教室', 80, 1),
+  ('MAIN-303', '综合楼303', '教学主楼', '教室', 80, 1),
+  ('MAIN-301', '主楼301', '教学主楼', '教室', 80, 1),
+  ('COURT', '模拟法庭', '教学主楼', '实训', 60, 1),
+  ('SEC-LAB-A', '网安实验室A', '信息中心', '实验室', 40, 1),
+  ('SEC-LAB-B', '网安实验室B', '信息中心', '实验室', 40, 1),
+  ('INNO-SEC', '网安创新中心', '信息中心', '实验室', 50, 1),
+  ('FIELD-A', '操场A区', '训练场', '场地', NULL, 1),
+  ('TRA-SAND', '交通沙盘室', '训练楼', '实训', 50, 1),
+  ('TRA-SCENE', '交管情景室', '训练楼', '情景', 40, 1),
+  ('ACCIDENT', '事故演练场', '训练场', '场地', NULL, 1),
+  ('CSI-LAB', '刑侦实验室', '刑侦楼', '实验室', 40, 1),
+  ('CASE-ROOM', '案例研讨室', '教学楼', '研讨', 40, 1),
+  ('REDBLUE', '红蓝靶场', '训练场', '靶场', NULL, 1),
+  ('VEHICLE', '车辆实验室', '训练楼', '实验室', 30, 1);
+
 -- 专业
 INSERT OR IGNORE INTO majors (code, name, org_unit_id, level, degree, duration_years, active, description) VALUES
   ('INV', '刑事侦查学', (SELECT id FROM org_units WHERE name = '第二大队'), '本科', '法学', 4, 1, '重侦查、勘查、证据链'),

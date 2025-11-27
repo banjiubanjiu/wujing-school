@@ -228,6 +228,18 @@ export async function fetchRooms(params?: { q?: string; room_type?: string; acti
   return res.data;
 }
 
+export async function createRoom(payload: {
+  code: string;
+  name: string;
+  building?: string;
+  room_type?: string;
+  capacity?: number;
+  features?: string;
+}) {
+  const res = await api.post<Room>("/api/rooms", payload);
+  return res.data;
+}
+
 export async function fetchMenus(): Promise<MenuResponse> {
   const res = await api.get("/api/menus");
   return res.data;
