@@ -15,6 +15,7 @@ import {
   Tag,
   message,
 } from "antd";
+import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppLayout } from "../../components/Layout";
 import {
@@ -132,6 +133,25 @@ export function StudentClassCourse() {
   const { data: majors = [] } = useQuery({ queryKey: ["majors"], queryFn: () => fetchMajors() });
   const { data: terms = [] } = useQuery({ queryKey: ["terms"], queryFn: () => fetchTerms() });
   const { data: teachers = [] } = useQuery({ queryKey: ["teachers"], queryFn: () => fetchTeachers() });
+  const courseMajorId = Form.useWatch("major_id", courseForm);
+  const courseTermId = Form.useWatch("term_id", courseForm);
+
+  const classOptions = useMemo(() => classes.map((c) => ({ value: c.id, label: `${c.name} (${c.id})` })), [classes]);
+  const filteredCourseClassOptions = useMemo(
+    () =>
+      classes.map((c) => ({
+        value: c.id,
+        label: `${c.name} (${c.id})`,
+        disabled: (courseMajorId && c.major_id !== courseMajorId) || (courseTermId && c.term_id !== courseTermId),
+      })),
+    [classes, courseMajorId, courseTermId]
+  );
+  const majorOptions = useMemo(() => majors.map((m) => ({ value: m.id, label: m.name })), [majors]);
+  const termOptions = useMemo(() => terms.map((t) => ({ value: t.id, label: t.name })), [terms]);
+  const teacherOptions = useMemo(
+    () => (teachers as Teacher[]).map((t) => ({ value: t.id, label: `${t.user.full_name} (${t.id})` })),
+    [teachers]
+  );
 
   const createClassMut = useMutation({
     mutationFn: createClass,
@@ -212,10 +232,12 @@ export function StudentClassCourse() {
               </Form.Item>
               <Form.Item name="class_id">
                 <Select
-                  style={{ minWidth: 140 }}
+                  showSearch
+                  optionFilterProp="label"
+                  style={{ minWidth: 160 }}
                   allowClear
                   placeholder="班级"
-                  options={classes.map((c) => ({ value: c.id, label: `${c.name} (${c.id})` }))}
+                  options={classOptions}
                 />
               </Form.Item>
               <Form.Item>
@@ -239,10 +261,22 @@ export function StudentClassCourse() {
               <Input placeholder="名称" />
             </Form.Item>
             <Form.Item name="major_id" rules={[{ required: true }]}>
-              <Select style={{ width: 140 }} placeholder="专业" options={majors.map((m) => ({ value: m.id, label: m.name }))} />
+              <Select
+                showSearch
+                optionFilterProp="label"
+                style={{ width: 160 }}
+                placeholder="专业"
+                options={majorOptions}
+              />
             </Form.Item>
             <Form.Item name="term_id" rules={[{ required: true }]}>
-              <Select style={{ width: 140 }} placeholder="学期" options={terms.map((t) => ({ value: t.id, label: t.name }))} />
+              <Select
+                showSearch
+                optionFilterProp="label"
+                style={{ width: 160 }}
+                placeholder="学期"
+                options={termOptions}
+              />
             </Form.Item>
             <Form.Item name="grade_year">
               <InputNumber placeholder="年级" />
@@ -266,21 +300,42 @@ export function StudentClassCourse() {
               <Input placeholder="名称" />
             </Form.Item>
             <Form.Item name="major_id" rules={[{ required: true }]}>
-              <Select style={{ width: 140 }} placeholder="专业" options={majors.map((m) => ({ value: m.id, label: m.name }))} />
+              <Select
+                showSearch
+                optionFilterProp="label"
+                style={{ width: 160 }}
+                placeholder="专业"
+                options={majorOptions}
+              />
             </Form.Item>
             <Form.Item name="term_id" rules={[{ required: true }]}>
-              <Select style={{ width: 140 }} placeholder="学期" options={terms.map((t) => ({ value: t.id, label: t.name }))} />
+              <Select
+                showSearch
+                optionFilterProp="label"
+                style={{ width: 160 }}
+                placeholder="学期"
+                options={termOptions}
+              />
             </Form.Item>
             <Form.Item name="teacher_id">
               <Select
+                showSearch
+                optionFilterProp="label"
                 allowClear
                 placeholder="教师"
-                style={{ width: 140 }}
-                options={(teachers as Teacher[]).map((t) => ({ value: t.id, label: `${t.user.full_name} (${t.id})` }))}
+                style={{ width: 180 }}
+                options={teacherOptions}
               />
             </Form.Item>
             <Form.Item name="class_id">
-              <Select style={{ width: 140 }} allowClear placeholder="教学班" options={classes.map((c) => ({ value: c.id, label: c.name }))} />
+              <Select
+                showSearch
+                optionFilterProp="label"
+                style={{ width: 180 }}
+                allowClear
+                placeholder="教学班"
+                options={filteredCourseClassOptions}
+              />
             </Form.Item>
             <Form.Item>
               <Button type="primary" htmlType="submit" loading={createCourseMut.isPending}>
@@ -515,6 +570,27 @@ export function GradePanel() {
 
   const { data: courses = [] } = useQuery({ queryKey: ["courses"], queryFn: () => fetchCourses() });
   const { data: classes = [] } = useQuery({ queryKey: ["classes"], queryFn: () => fetchClasses() });
+  const filterCourseId = Form.useWatch("course_id", filterForm);
+  const selectedFilterCourse = useMemo(
+    () => (courses as Course[]).find((c) => c.id === filterCourseId),
+    [courses, filterCourseId]
+  );
+  const courseOptions = useMemo(
+    () => (courses as Course[]).map((c) => ({ value: c.id, label: `${c.name} (${c.id})` })),
+    [courses]
+  );
+  const gradeClassOptions = useMemo(
+    () =>
+      (classes as ClassItem[]).map((c) => ({
+        value: c.id,
+        label: `${c.name} (${c.id})`,
+        disabled: Boolean(
+          (selectedFilterCourse?.class_id && c.id !== selectedFilterCourse.class_id) ||
+            (selectedFilterCourse?.major_id && c.major_id !== selectedFilterCourse.major_id)
+        ),
+      })),
+    [classes, selectedFilterCourse]
+  );
   const { data: grades = [] } = useQuery({
     queryKey: ["grades", filterForm.getFieldValue("course_id"), filterForm.getFieldValue("class_id"), filterForm.getFieldValue("status_filter")],
     queryFn: () =>
@@ -580,18 +656,22 @@ export function GradePanel() {
           <Form form={filterForm} layout="inline">
             <Form.Item name="course_id">
               <Select
+                showSearch
+                optionFilterProp="label"
                 allowClear
                 placeholder="选择课程"
-                style={{ minWidth: 180 }}
-                options={(courses as Course[]).map((c) => ({ value: c.id, label: `${c.name} (${c.id})` }))}
+                style={{ minWidth: 200 }}
+                options={courseOptions}
               />
             </Form.Item>
             <Form.Item name="class_id">
               <Select
+                showSearch
+                optionFilterProp="label"
                 allowClear
                 placeholder="班级"
                 style={{ minWidth: 160 }}
-                options={(classes as ClassItem[]).map((c) => ({ value: c.id, label: `${c.name} (${c.id})` }))}
+                options={gradeClassOptions}
               />
             </Form.Item>
             <Form.Item name="status_filter">
@@ -604,9 +684,11 @@ export function GradePanel() {
           <Form form={publishForm} layout="inline" onFinish={publishMut.mutate}>
             <Form.Item name="course_id" rules={[{ required: true }]}>
               <Select
+                showSearch
+                optionFilterProp="label"
                 placeholder="选择课程发布"
                 style={{ minWidth: 200 }}
-                options={(courses as Course[]).map((c) => ({ value: c.id, label: `${c.name} (${c.id})` }))}
+                options={courseOptions}
               />
             </Form.Item>
             <Form.Item>
@@ -630,6 +712,36 @@ export function SchedulePanel() {
   const { data: classes = [] } = useQuery({ queryKey: ["classes"], queryFn: () => fetchClasses() });
   const { data: courses = [] } = useQuery({ queryKey: ["courses"], queryFn: () => fetchCourses() });
   const { data: teachers = [] } = useQuery({ queryKey: ["teachers"], queryFn: () => fetchTeachers() });
+  const selectedScheduleCourseId = Form.useWatch("course_id", createForm);
+  const selectedScheduleCourse = useMemo(
+    () => (courses as Course[]).find((c) => c.id === selectedScheduleCourseId),
+    [courses, selectedScheduleCourseId]
+  );
+  const scheduleCourseOptions = useMemo(
+    () => (courses as Course[]).map((c) => ({ value: c.id, label: `${c.name} (${c.id})` })),
+    [courses]
+  );
+  const scheduleClassOptions = useMemo(
+    () =>
+      classes.map((c) => ({
+        value: c.id,
+        label: `${c.name} (${c.id})`,
+        disabled: Boolean(
+          (selectedScheduleCourse?.class_id && c.id !== selectedScheduleCourse.class_id) ||
+            (selectedScheduleCourse?.major_id && c.major_id !== selectedScheduleCourse.major_id) ||
+            (selectedScheduleCourse?.term_id && c.term_id !== selectedScheduleCourse.term_id)
+        ),
+      })),
+    [classes, selectedScheduleCourse]
+  );
+  const scheduleFilterClassOptions = useMemo(
+    () => classes.map((c) => ({ value: c.id, label: `${c.name} (${c.id})` })),
+    [classes]
+  );
+  const scheduleTeacherOptions = useMemo(
+    () => (teachers as Teacher[]).map((t) => ({ value: t.id, label: `${t.user.full_name} (${t.id})` })),
+    [teachers]
+  );
   const { data: schedule = [] } = useQuery({
     queryKey: ["schedule", filterForm.getFieldValue("class_id"), filterForm.getFieldValue("teacher_id")],
     queryFn: () =>
@@ -671,18 +783,22 @@ export function SchedulePanel() {
             <Form form={filterForm} layout="inline">
               <Form.Item name="class_id">
                 <Select
+                  showSearch
+                  optionFilterProp="label"
                   placeholder="班级"
                   allowClear
                   style={{ minWidth: 160 }}
-                  options={classes.map((c) => ({ value: c.id, label: `${c.name} (${c.id})` }))}
+                  options={scheduleFilterClassOptions}
                 />
               </Form.Item>
               <Form.Item name="teacher_id">
                 <Select
+                  showSearch
+                  optionFilterProp="label"
                   allowClear
                   placeholder="教师"
                   style={{ minWidth: 160 }}
-                  options={(teachers as Teacher[]).map((t) => ({ value: t.id, label: `${t.user.full_name} (${t.id})` }))}
+                  options={scheduleTeacherOptions}
                 />
               </Form.Item>
               <Form.Item>
@@ -698,15 +814,17 @@ export function SchedulePanel() {
         <Card title="创建排课">
           <Form layout="vertical" form={createForm} onFinish={createMut.mutate}>
             <Form.Item name="course_id" label="课程" rules={[{ required: true }]}>
-              <Select options={courses.map((c) => ({ value: c.id, label: `${c.name} (${c.id})` }))} />
+              <Select showSearch optionFilterProp="label" options={scheduleCourseOptions} />
             </Form.Item>
             <Form.Item name="class_id" label="班级">
-              <Select allowClear options={classes.map((c) => ({ value: c.id, label: `${c.name} (${c.id})` }))} />
+              <Select showSearch optionFilterProp="label" allowClear options={scheduleClassOptions} />
             </Form.Item>
             <Form.Item name="teacher_id" label="教师">
               <Select
+                showSearch
+                optionFilterProp="label"
                 allowClear
-                options={(teachers as Teacher[]).map((t) => ({ value: t.id, label: `${t.user.full_name} (${t.id})` }))}
+                options={scheduleTeacherOptions}
               />
             </Form.Item>
             <Form.Item name="weekday" label="星期" rules={[{ required: true }]}>
@@ -808,6 +926,36 @@ export function ExamPanel() {
   const { data: courses = [] } = useQuery({ queryKey: ["courses"], queryFn: () => fetchCourses() });
   const { data: classes = [] } = useQuery({ queryKey: ["classes"], queryFn: () => fetchClasses() });
   const { data: terms = [] } = useQuery({ queryKey: ["terms"], queryFn: () => fetchTerms() });
+  const selectedExamCourseId = Form.useWatch("course_id", form);
+  const selectedExamCourse = useMemo(
+    () => (courses as Course[]).find((c) => c.id === selectedExamCourseId),
+    [courses, selectedExamCourseId]
+  );
+  const selectedExamTermId = Form.useWatch("term_id", form);
+  const examCourseOptions = useMemo(
+    () =>
+      (courses as Course[])
+        .filter((c) => !selectedExamTermId || c.term_id === selectedExamTermId)
+        .map((c) => ({ value: c.id, label: `${c.name} (${c.id})` })),
+    [courses, selectedExamTermId]
+  );
+  const examClassOptions = useMemo(
+    () =>
+      (classes as ClassItem[]).map((c) => ({
+        value: c.id,
+        label: `${c.name} (${c.id})`,
+        disabled: Boolean(
+          (selectedExamCourse?.class_id && c.id !== selectedExamCourse.class_id) ||
+            (selectedExamCourse?.major_id && c.major_id !== selectedExamCourse.major_id) ||
+            (selectedExamCourse?.term_id && c.term_id !== selectedExamCourse.term_id)
+        ),
+      })),
+    [classes, selectedExamCourse]
+  );
+  const examTermOptions = useMemo(
+    () => (terms as Term[]).map((t) => ({ value: t.id, label: t.name })),
+    [terms]
+  );
 
   const createExamMut = useMutation({
     mutationFn: createExam,
@@ -844,14 +992,15 @@ export function ExamPanel() {
             <Form.Item name="course_id" label="课程" rules={[{ required: true }]}>
               <Select
                 showSearch
-                options={(courses as Course[]).map((c) => ({ value: c.id, label: `${c.name} (${c.id})` }))}
+                optionFilterProp="label"
+                options={examCourseOptions}
               />
             </Form.Item>
             <Form.Item name="class_id" label="班级">
-              <Select allowClear options={(classes as ClassItem[]).map((c) => ({ value: c.id, label: `${c.name} (${c.id})` }))} />
+              <Select showSearch optionFilterProp="label" allowClear options={examClassOptions} />
             </Form.Item>
             <Form.Item name="term_id" label="学期">
-              <Select allowClear options={(terms as Term[]).map((t) => ({ value: t.id, label: t.name }))} />
+              <Select showSearch optionFilterProp="label" allowClear options={examTermOptions} />
             </Form.Item>
             <Form.Item name="exam_type" label="类型">
               <Input placeholder="期末/期中/补考.." />

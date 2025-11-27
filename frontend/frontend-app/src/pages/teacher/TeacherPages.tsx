@@ -122,6 +122,23 @@ export function TeacherGradesPage() {
     queryFn: () => fetchStudents({ class_id: classId }),
     enabled: Boolean(classId),
   });
+  const courseOptions = useMemo(
+    () =>
+      (courses as Course[]).map((c) => ({
+        value: c.id,
+        label: `${c.name} (${c.id})${c.class_id ? ` · 班级${c.class_id}` : " · 无班级"}`,
+        disabled: !c.class_id,
+      })),
+    [courses]
+  );
+  const studentOptions = useMemo(
+    () =>
+      (students as Student[]).map((s) => ({
+        value: s.id,
+        label: `${s.user.full_name} (${s.student_no})`,
+      })),
+    [students]
+  );
 
   useEffect(() => {
     if (selectedCourse) {
@@ -131,6 +148,9 @@ export function TeacherGradesPage() {
       });
     }
   }, [selectedCourse, gradeForm]);
+  useEffect(() => {
+    gradeForm.setFieldValue("student_id", undefined);
+  }, [classId, gradeForm]);
 
   const upsertGradeMut = useMutation({
     mutationFn: upsertGrade,
@@ -177,22 +197,27 @@ export function TeacherGradesPage() {
             <Form.Item name="course_id" label="课程" rules={[{ required: true }]}>
               <Select
                 showSearch
+                optionFilterProp="label"
+                allowClear
                 placeholder="选择课程"
-                options={(courses as Course[]).map((c) => ({ value: c.id, label: `${c.name} (${c.id})` }))}
-                onChange={(val: number) => setSelectedCourseId(val)}
+                options={courseOptions}
+                onChange={(val) => {
+                  setSelectedCourseId(val || undefined);
+                  if (!val) {
+                    gradeForm.setFieldsValue({ term_id: undefined, student_id: undefined });
+                  }
+                }}
               />
             </Form.Item>
             <Form.Item name="term_id" label="学期ID" rules={[{ required: true }]}>
-              <InputNumber style={{ width: "100%" }} />
+              <InputNumber style={{ width: "100%" }} disabled placeholder="随课程自动填充" />
             </Form.Item>
             <Form.Item name="student_id" label="学生" rules={[{ required: true }]}>
               <Select
                 showSearch
+                optionFilterProp="label"
                 placeholder={classId ? "选择学生" : "先选择课程/班级"}
-                options={(students as Student[]).map((s) => ({
-                  value: s.id,
-                  label: `${s.user.full_name} (${s.student_no})`,
-                }))}
+                options={studentOptions}
                 disabled={!classId}
               />
             </Form.Item>
