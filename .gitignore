@@ -1,0 +1,72 @@
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+*.iml
+
+# Python bytecode and build artifacts
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+.eggs/
+*.dist-info/
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.pytype/
+.cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Environment variables
+.env
+.env.*
+*.env
+!.env.example
+!.env.sample
+
+# Local databases and data dumps
+*.db
+*.db-*
+*.db-journal
+*.sqlite
+*.sqlite3
+*.sqlite-*
+backend/data/
+
+# Logs and temp files
+*.log
+logs/
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# Frontend dependency/build output (for future tooling)
+node_modules/
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.tsbuildinfo
+dist/
+out/

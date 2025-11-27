@@ -1,0 +1,2 @@
+"""Police Academy backend package."""
+
