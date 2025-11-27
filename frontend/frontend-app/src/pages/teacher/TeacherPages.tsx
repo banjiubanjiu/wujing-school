@@ -1,9 +1,10 @@
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Card, Col, Form, InputNumber, Row, Select, Statistic, Table, Tag, message } from "antd";
 import { AppLayout } from "../../components/Layout";
 import { teacherNav } from "../../constants/nav";
-import { fetchCourses, fetchGrades, fetchHome, fetchMySchedule, submitGrade, upsertGrade } from "../../api/entities";
-import type { Course, Grade, ScheduleEntry } from "../../api/types";
+import { fetchCourses, fetchGrades, fetchHome, fetchMySchedule, fetchStudents, submitGrade, upsertGrade } from "../../api/entities";
+import type { Course, Grade, ScheduleEntry, Student } from "../../api/types";
 
 const weekdayText = ["-", "周一", "周二", "周三", "周四", "周五", "周六", "周日"];
 const statusTag = (status?: string) => {
@@ -109,9 +110,27 @@ export function TeacherCoursesPage() {
 export function TeacherGradesPage() {
   const queryClient = useQueryClient();
   const [gradeForm] = Form.useForm();
+  const [selectedCourseId, setSelectedCourseId] = useState<number | undefined>(undefined);
 
   const { data: courses = [] } = useQuery({ queryKey: ["teacher-courses"], queryFn: () => fetchCourses({ mine: true }) });
   const { data: grades = [] } = useQuery({ queryKey: ["teacher-grades"], queryFn: () => fetchGrades({ mine: true }) });
+  const selectedCourse = useMemo(() => (courses as Course[]).find((c) => c.id === selectedCourseId), [courses, selectedCourseId]);
+  const classId = selectedCourse?.class_id;
+
+  const { data: students = [] } = useQuery({
+    queryKey: ["teacher-grade-students", classId],
+    queryFn: () => fetchStudents({ class_id: classId }),
+    enabled: Boolean(classId),
+  });
+
+  useEffect(() => {
+    if (selectedCourse) {
+      gradeForm.setFieldsValue({
+        course_id: selectedCourse.id,
+        term_id: selectedCourse.term_id,
+      });
+    }
+  }, [selectedCourse, gradeForm]);
 
   const upsertGradeMut = useMutation({
     mutationFn: upsertGrade,
@@ -155,19 +174,28 @@ export function TeacherGradesPage() {
         <Col span={10}>
           <Card title="录入成绩">
             <Form layout="vertical" form={gradeForm} onFinish={upsertGradeMut.mutate}>
-              <Form.Item name="student_id" label="学生ID" rules={[{ required: true }]}>
-                <InputNumber style={{ width: "100%" }} />
-              </Form.Item>
-              <Form.Item name="course_id" label="课程" rules={[{ required: true }]}>
-                <Select
-                  showSearch
-                  placeholder="选择课程"
-                  options={(courses as Course[]).map((c) => ({ value: c.id, label: `${c.name} (${c.id})` }))}
-                />
-              </Form.Item>
-              <Form.Item name="term_id" label="学期ID" rules={[{ required: true }]}>
-                <InputNumber style={{ width: "100%" }} />
-              </Form.Item>
+            <Form.Item name="course_id" label="课程" rules={[{ required: true }]}>
+              <Select
+                showSearch
+                placeholder="选择课程"
+                options={(courses as Course[]).map((c) => ({ value: c.id, label: `${c.name} (${c.id})` }))}
+                onChange={(val: number) => setSelectedCourseId(val)}
+              />
+            </Form.Item>
+            <Form.Item name="term_id" label="学期ID" rules={[{ required: true }]}>
+              <InputNumber style={{ width: "100%" }} />
+            </Form.Item>
+            <Form.Item name="student_id" label="学生" rules={[{ required: true }]}>
+              <Select
+                showSearch
+                placeholder={classId ? "选择学生" : "先选择课程/班级"}
+                options={(students as Student[]).map((s) => ({
+                  value: s.id,
+                  label: `${s.user.full_name} (${s.student_no})`,
+                }))}
+                disabled={!classId}
+              />
+            </Form.Item>
               <Form.Item name="usual_score" label="平时成绩" rules={[{ required: true }]}>
                 <InputNumber style={{ width: "100%" }} min={0} max={100} />
               </Form.Item>

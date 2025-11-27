@@ -513,6 +513,8 @@ export function GradePanel() {
   const [publishForm] = Form.useForm();
   const queryClient = useQueryClient();
 
+  const { data: courses = [] } = useQuery({ queryKey: ["courses"], queryFn: () => fetchCourses() });
+  const { data: classes = [] } = useQuery({ queryKey: ["classes"], queryFn: () => fetchClasses() });
   const { data: grades = [] } = useQuery({
     queryKey: ["grades", filterForm.getFieldValue("course_id"), filterForm.getFieldValue("class_id"), filterForm.getFieldValue("status_filter")],
     queryFn: () =>
@@ -577,10 +579,20 @@ export function GradePanel() {
         <Space>
           <Form form={filterForm} layout="inline">
             <Form.Item name="course_id">
-              <Input placeholder="course_id" allowClear />
+              <Select
+                allowClear
+                placeholder="选择课程"
+                style={{ minWidth: 180 }}
+                options={(courses as Course[]).map((c) => ({ value: c.id, label: `${c.name} (${c.id})` }))}
+              />
             </Form.Item>
             <Form.Item name="class_id">
-              <Input placeholder="class_id" allowClear />
+              <Select
+                allowClear
+                placeholder="班级"
+                style={{ minWidth: 160 }}
+                options={(classes as ClassItem[]).map((c) => ({ value: c.id, label: `${c.name} (${c.id})` }))}
+              />
             </Form.Item>
             <Form.Item name="status_filter">
               <Input placeholder="状态 draft/submitted/published" allowClear />
@@ -591,7 +603,11 @@ export function GradePanel() {
           </Form>
           <Form form={publishForm} layout="inline" onFinish={publishMut.mutate}>
             <Form.Item name="course_id" rules={[{ required: true }]}>
-              <Input placeholder="课程ID发布" />
+              <Select
+                placeholder="选择课程发布"
+                style={{ minWidth: 200 }}
+                options={(courses as Course[]).map((c) => ({ value: c.id, label: `${c.name} (${c.id})` }))}
+              />
             </Form.Item>
             <Form.Item>
               <Button type="primary" htmlType="submit" loading={publishMut.isPending}>
@@ -789,6 +805,9 @@ export function ExamPanel() {
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
   const { data: exams = [] } = useQuery({ queryKey: ["exams"], queryFn: () => fetchExams() });
+  const { data: courses = [] } = useQuery({ queryKey: ["courses"], queryFn: () => fetchCourses() });
+  const { data: classes = [] } = useQuery({ queryKey: ["classes"], queryFn: () => fetchClasses() });
+  const { data: terms = [] } = useQuery({ queryKey: ["terms"], queryFn: () => fetchTerms() });
 
   const createExamMut = useMutation({
     mutationFn: createExam,
@@ -822,14 +841,17 @@ export function ExamPanel() {
       <Col span={10}>
         <Card title="创建考试">
           <Form layout="vertical" form={form} onFinish={createExamMut.mutate}>
-            <Form.Item name="course_id" label="课程ID" rules={[{ required: true }]}>
-              <InputNumber style={{ width: "100%" }} />
+            <Form.Item name="course_id" label="课程" rules={[{ required: true }]}>
+              <Select
+                showSearch
+                options={(courses as Course[]).map((c) => ({ value: c.id, label: `${c.name} (${c.id})` }))}
+              />
             </Form.Item>
-            <Form.Item name="class_id" label="班级ID">
-              <InputNumber style={{ width: "100%" }} />
+            <Form.Item name="class_id" label="班级">
+              <Select allowClear options={(classes as ClassItem[]).map((c) => ({ value: c.id, label: `${c.name} (${c.id})` }))} />
             </Form.Item>
-            <Form.Item name="term_id" label="学期ID">
-              <InputNumber style={{ width: "100%" }} />
+            <Form.Item name="term_id" label="学期">
+              <Select allowClear options={(terms as Term[]).map((t) => ({ value: t.id, label: t.name }))} />
             </Form.Item>
             <Form.Item name="exam_type" label="类型">
               <Input placeholder="期末/期中/补考.." />
