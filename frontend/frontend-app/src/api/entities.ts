@@ -14,7 +14,6 @@ import type {
   OrgUnit,
   Teacher,
   Room,
-  Role,
   RoleWithPermissions,
   Permission,
   UserDetail,
