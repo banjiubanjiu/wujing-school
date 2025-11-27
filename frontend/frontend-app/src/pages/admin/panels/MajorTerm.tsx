@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Card, Checkbox, Col, Form, Input, InputNumber, Row, Select, message } from "antd";
+import { Button, Card, Checkbox, Col, DatePicker, Form, Input, InputNumber, Row, Select, message } from "antd";
 import { createMajor, createTerm, fetchMajors, fetchOrgUnits, updateMajor, updateTerm } from "../../../api/entities";
 import type { Major, Term } from "../../../api/types";
+import type { Dayjs } from "dayjs";
 
 export function MajorTerm() {
   const [majorForm] = Form.useForm();
@@ -120,15 +121,39 @@ export function MajorTerm() {
       </Col>
       <Col span={12}>
         <Card title="创建学期">
-          <Form layout="vertical" form={termForm} onFinish={createTermMut.mutate}>
+          <Form
+            layout="vertical"
+            form={termForm}
+            onFinish={(vals) =>
+              createTermMut.mutate({
+                ...vals,
+                start_date: vals.start_date?.format("YYYY-MM-DD"),
+                end_date: vals.end_date?.format("YYYY-MM-DD"),
+              })
+            }
+          >
             <Form.Item name="name" label="名称" rules={[{ required: true }]}>
               <Input />
             </Form.Item>
             <Form.Item name="start_date" label="开始日期">
-              <Input placeholder="YYYY-MM-DD" />
+              <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
             </Form.Item>
-            <Form.Item name="end_date" label="结束日期">
-              <Input placeholder="YYYY-MM-DD" />
+            <Form.Item
+              name="end_date"
+              label="结束日期"
+              rules={[
+                {
+                  validator: (_: unknown, value: Dayjs | undefined) => {
+                    const start = termForm.getFieldValue("start_date") as Dayjs | undefined;
+                    if (start && value && value.isBefore(start, "day")) {
+                      return Promise.reject(new Error("结束日期不能早于开始日期"));
+                    }
+                    return Promise.resolve();
+                  },
+                },
+              ]}
+            >
+              <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
             </Form.Item>
             <Form.Item name="is_current" valuePropName="checked">
               <Checkbox>设为当前</Checkbox>
@@ -144,7 +169,17 @@ export function MajorTerm() {
           <Form
             layout="vertical"
             form={termEditForm}
-            onFinish={(vals) => updateTermMut.mutate({ id: Number(vals.id), data: { ...vals, id: undefined } })}
+            onFinish={(vals) =>
+              updateTermMut.mutate({
+                id: Number(vals.id),
+                data: {
+                  ...vals,
+                  id: undefined,
+                  start_date: vals.start_date?.format("YYYY-MM-DD"),
+                  end_date: vals.end_date?.format("YYYY-MM-DD"),
+                },
+              })
+            }
           >
             <Form.Item name="id" label="term_id" rules={[{ required: true }]}>
               <InputNumber style={{ width: "100%" }} />
@@ -153,10 +188,24 @@ export function MajorTerm() {
               <Input />
             </Form.Item>
             <Form.Item name="start_date" label="开始日期">
-              <Input placeholder="YYYY-MM-DD" />
+              <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
             </Form.Item>
-            <Form.Item name="end_date" label="结束日期">
-              <Input placeholder="YYYY-MM-DD" />
+            <Form.Item
+              name="end_date"
+              label="结束日期"
+              rules={[
+                {
+                  validator: (_: unknown, value: Dayjs | undefined) => {
+                    const start = termEditForm.getFieldValue("start_date") as Dayjs | undefined;
+                    if (start && value && value.isBefore(start, "day")) {
+                      return Promise.reject(new Error("结束日期不能早于开始日期"));
+                    }
+                    return Promise.resolve();
+                  },
+                },
+              ]}
+            >
+              <DatePicker style={{ width: "100%" }} format="YYYY-MM-DD" />
             </Form.Item>
             <Form.Item name="is_current" valuePropName="checked">
               <Checkbox>设为当前</Checkbox>
