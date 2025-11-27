@@ -944,8 +944,19 @@ export function SchedulePanel() {
                 options={scheduleTeacherOptions}
               />
             </Form.Item>
-            <Form.Item name="room_id" label="地点">
-              <Select showSearch optionFilterProp="label" allowClear options={scheduleRoomOptions} placeholder="选择教室/场地" />
+            <Form.Item name="room_id" label="地点(房间)">
+              <Select
+                showSearch
+                optionFilterProp="label"
+                allowClear
+                options={scheduleRoomOptions}
+                placeholder="选择教室/场地"
+                onChange={(val, option) => {
+                  if (val && typeof option === "object" && "label" in (option as any)) {
+                    createForm.setFieldValue("location", (option as any).label);
+                  }
+                }}
+              />
             </Form.Item>
             <Form.Item name="weekday" label="星期" rules={[{ required: true }]}>
               <InputNumber style={{ width: "100%" }} min={1} max={7} />
@@ -956,8 +967,8 @@ export function SchedulePanel() {
             <Form.Item name="end_slot" label="结束节次" rules={[{ required: true }]}>
               <InputNumber style={{ width: "100%" }} min={1} max={12} />
             </Form.Item>
-            <Form.Item name="location" label="地点">
-              <Input />
+            <Form.Item name="location" label="自定义地点(无房间时)">
+              <Input placeholder="可选，未选房间时填写" />
             </Form.Item>
             <Form.Item>
               <Space>
